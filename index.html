@@ -208,7 +208,17 @@
         await supabaseClient.from('penalties').insert({ 
             match_id: MATCH_ID, team, ends_at_match_seconds: endsAtMatch 
         });
-        logEvent(team === 'home' ? 'penalty_home' : 'penalty_away');
+
+        // On log l'événement avec le score actuel (qui est correct ici puisqu'il n'y a pas de but)
+        const scoreSnapshot = `${matchData.score_home} - ${matchData.score_away}`;
+        const matchTime = document.getElementById('timer-display').innerText;
+
+        await supabaseClient.from('timeline').insert({
+            match_id: MATCH_ID,
+            event_type: team === 'home' ? 'penalty_home' : 'penalty_away',
+            match_time: matchTime,
+            score_snapshot: scoreSnapshot
+        });
     }
 
     async function toggleTimer() {
@@ -226,12 +236,34 @@
     }
 
     async function updateScore(col, inc) {
+        // 1. On récupère la valeur actuelle
         const { data } = await supabaseClient.from('matches').select(col).eq('id', MATCH_ID).single();
-        const newScore = Math.max(0, data[col] + inc);
-        await supabaseClient.from('matches').update({ [col]: newScore }).eq('id', MATCH_ID);
-    
+        
+        // 2. On calcule le NOUVEAU score localement
+        const newScoreValue = Math.max(0, data[col] + inc);
+        
+        // 3. On met à jour la base de données pour le score
+        await supabaseClient.from('matches').update({ [col]: newScoreValue }).eq('id', MATCH_ID);
+        
+        // 4. On crée le snapshot du score APRES le but pour la timeline
         if (inc > 0) {
-            logEvent(col === 'score_home' ? 'goal_home' : 'goal_away');
+            let scoreHome = matchData.score_home;
+            let scoreAway = matchData.score_away;
+            
+            // On ajuste manuellement la valeur qui vient de changer pour le log
+            if (col === 'score_home') scoreHome = newScoreValue;
+            else scoreAway = newScoreValue;
+            
+            const scoreSnapshot = `${scoreHome} - ${scoreAway}`;
+            const matchTime = document.getElementById('timer-display').innerText;
+            
+            // 5. On enregistre dans la timeline avec le score correct
+            await supabaseClient.from('timeline').insert({
+                match_id: MATCH_ID,
+                event_type: col === 'score_home' ? 'goal_home' : 'goal_away',
+                match_time: matchTime,
+                score_snapshot: scoreSnapshot
+            });
         }
     }
 
