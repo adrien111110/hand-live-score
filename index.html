@@ -15,23 +15,25 @@
         <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
     </div>
 
-    <div class="w-full max-w-lg mt-8 bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
-        <div class="flex justify-between items-start">
-            <div class="flex-1 text-center">
-                <h2 id="home-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">MAISON</h2>
-                <div id="score-home" class="score-font text-7xl mb-4">0</div>
-                <div id="penalties-home" class="space-y-2"></div>
-            </div>
+   <div class="w-full max-w-lg mt-8 bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
+    <div class="flex justify-between items-start">
+        <div class="flex-1 text-center flex flex-col items-center">
+            <img id="home-logo" src="" class="w-16 h-16 mb-3 object-contain hidden" alt="Logo Maison">
+            <h2 id="home-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">MAISON</h2>
+            <div id="score-home" class="score-font text-7xl mb-4">0</div>
+            <div id="penalties-home" class="space-y-2 w-full"></div>
+        </div>
 
-            <div class="text-4xl text-slate-800 font-bold mt-8">:</div>
+        <div class="text-4xl text-slate-800 font-bold mt-20">:</div>
 
-            <div class="flex-1 text-center">
-                <h2 id="away-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">EXTÉRIEUR</h2>
-                <div id="score-away" class="score-font text-7xl mb-4">0</div>
-                <div id="penalties-away" class="space-y-2"></div>
-            </div>
+        <div class="flex-1 text-center flex flex-col items-center">
+            <img id="away-logo" src="" class="w-16 h-16 mb-3 object-contain hidden" alt="Logo Extérieur">
+            <h2 id="away-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">EXTÉRIEUR</h2>
+            <div id="score-away" class="score-font text-7xl mb-4">0</div>
+            <div id="penalties-away" class="space-y-2 w-full"></div>
         </div>
     </div>
+</div>
     
     <div class="w-full max-w-lg mt-6">
         <h3 class="text-[10px] uppercase tracking-widest text-slate-500 mb-3 px-2 font-bold">Fil du match</h3>
@@ -294,6 +296,16 @@
         document.getElementById('score-away').innerText = matchData.score_away;
         document.getElementById('home-name').innerText = matchData.home_team;
         document.getElementById('away-name').innerText = matchData.away_team;
+        const homeLogo = document.getElementById('home-logo');
+        if (matchData.home_logo_url) {
+            homeLogo.src = matchData.home_logo_url;
+            homeLogo.classList.remove('hidden');
+        }
+        const awayLogo = document.getElementById('away-logo');
+        if (matchData.away_logo_url) {
+            awayLogo.src = matchData.away_logo_url;
+            awayLogo.classList.remove('hidden');
+        }
         const btn = document.getElementById('btn-timer');
         btn.innerText = matchData.is_running ? 'PAUSE' : 'START';
         btn.className = matchData.is_running ? 'px-8 py-2 rounded-full font-bold bg-red-500 text-white' : 'px-8 py-2 rounded-full font-bold bg-green-500 text-black';
