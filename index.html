@@ -3,136 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Live Score</title>
+    <title>Hand Live Score & Chrono</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        .score-font { font-family: 'Orbitron', sans-serif; }
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style> .score-font { font-family: 'Orbitron', sans-serif; } </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
 
-    <div class="w-full max-w-md flex justify-between items-center mb-8 pt-4">
-        <span class="bg-red-600 animate-pulse text-xs font-bold px-2 py-1 rounded uppercase tracking-widest">Live</span>
-        <h1 class="text-slate-400 text-sm font-semibold tracking-tighter uppercase">match U18</h1>
-        <div id="connection-status" class="w-2 h-2 rounded-full bg-green-500"></div>
+    <div class="w-full max-w-md flex justify-between items-center mb-4 pt-4">
+        <span id="status-badge" class="bg-slate-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest">Attente</span>
+        <div id="connection-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
     </div>
 
-    <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
-        <div class="flex justify-between items-center gap-4">
+    <div class="mb-6 text-center">
+        <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
+    </div>
+
+    <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800 mb-8">
+        <div class="flex justify-between items-center">
             <div class="flex-1 text-center">
-                <h2 id="home-name" class="text-lg font-bold text-slate-300 mb-2 truncate text-uppercase italic">MAISON</h2>
-                <div id="score-home" class="score-font text-7xl md:text-8xl text-white">0</div>
+                <h2 id="home-name" class="text-xs font-bold text-slate-500 mb-2 uppercase italic">MAISON</h2>
+                <div id="score-home" class="score-font text-7xl">0</div>
             </div>
-
-            <div class="text-4xl text-slate-700 font-bold">:</div>
-
+            <div class="text-4xl text-slate-800 font-bold">:</div>
             <div class="flex-1 text-center">
-                <h2 id="away-name" class="text-lg font-bold text-slate-300 mb-2 truncate text-uppercase italic">EXTÉRIEUR</h2>
-                <div id="score-away" class="score-font text-7xl md:text-8xl text-white">0</div>
+                <h2 id="away-name" class="text-xs font-bold text-slate-500 mb-2 uppercase italic">EXTÉRIEUR</h2>
+                <div id="score-away" class="score-font text-7xl">0</div>
             </div>
         </div>
     </div>
 
-    <div id="admin-panel" class="hidden w-full max-w-md mt-10 space-y-6">
-        <div class="h-px bg-slate-800 w-full"></div>
-        <p class="text-center text-slate-500 text-xs uppercase tracking-widest font-bold">Tableau de commande</p>
-        
+    <div id="admin-panel" class="hidden w-full max-w-md space-y-6 bg-slate-900/50 p-6 rounded-3xl border border-dashed border-slate-700">
+        <div class="flex flex-col items-center gap-3">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Contrôle du Temps</p>
+            <div class="flex gap-4">
+                <button onclick="toggleTimer()" id="btn-timer" class="bg-amber-500 text-black px-8 py-3 rounded-full font-bold">START</button>
+                <button onclick="resetTimer()" class="bg-slate-800 px-4 py-3 rounded-full text-xs">Reset</button>
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
-                <button onclick="updateScore('score_home', 1)" class="bg-slate-100 text-black font-bold py-4 rounded-2xl active:scale-95 transition-transform">
-                    +1 MAISON
-                </button>
-                <button onclick="updateScore('score_home', -1)" class="bg-slate-800 text-slate-400 py-2 rounded-xl text-sm border border-slate-700">
-                    -1 Correction
-                </button>
+                <button onclick="updateScore('score_home', 1)" class="bg-white text-black font-bold py-4 rounded-xl">+1 MAISON</button>
+                <button onclick="updateScore('score_home', -1)" class="text-slate-500 text-xs py-1 text-center">Correction -1</button>
             </div>
-
             <div class="flex flex-col gap-2">
-                <button onclick="updateScore('score_away', 1)" class="bg-indigo-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform">
-                    +1 EXT.
-                </button>
-                <button onclick="updateScore('score_away', -1)" class="bg-slate-800 text-slate-400 py-2 rounded-xl text-sm border border-slate-700">
-                    -1 Correction
-                </button>
+                <button onclick="updateScore('score_away', 1)" class="bg-indigo-600 text-white font-bold py-4 rounded-xl">+1 EXT.</button>
+                <button onclick="updateScore('score_away', -1)" class="text-slate-500 text-xs py-1 text-center">Correction -1</button>
             </div>
         </div>
     </div>
 
     <script>
-        // CONFIGURATION
         const supabaseUrl = 'https://rmfcixwuyltwpotijozd.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZmNpeHd1eWx0d3BvdGlqb3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjQyMzgsImV4cCI6MjA4NTYwMDIzOH0.IW9b7431_xQlM1rydhOO551QgIq3bVEOgM5KllSzfTs';
         const MATCH_ID = 'd470bcc2-8b48-4881-8c9f-ac25c9002d2e';
         const ADMIN_SECRET = "coach2026"; 
 
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        let matchData = null;
+        let localInterval = null;
 
-        // INITIALISATION
         async function init() {
-            // 1. Charger le score actuel
-            const { data, error } = await supabaseClient
-                .from('matches')
-                .select('*')
-                .eq('id', MATCH_ID)
-                .single();
-            
+            const { data } = await supabaseClient.from('matches').select('*').eq('id', MATCH_ID).single();
             if (data) {
-                renderScore(data);
-                document.getElementById('home-name').innerText = data.home_team;
-                document.getElementById('away-name').innerText = data.away_team;
+                matchData = data;
+                updateDOM();
             }
 
-            // 2. Écouter le Realtime
-            supabaseClient
-                .channel('score-live')
-                .on('postgres_changes', { 
-                    event: 'UPDATE', 
-                    schema: 'public', 
-                    table: 'matches',
-                    filter: `id=eq.${MATCH_ID}` 
-                }, payload => {
-                    renderScore(payload.new);
-                })
-                .subscribe();
+            supabaseClient.channel('live').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, payload => {
+                matchData = payload.new;
+                updateDOM();
+            }).subscribe();
 
-            // 3. Vérifier mode Admin
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('admin') === ADMIN_SECRET) {
+            if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) {
                 document.getElementById('admin-panel').classList.remove('hidden');
             }
+
+            // Rafraîchissement visuel du chrono toutes les secondes
+            setInterval(runLocalTimer, 1000);
         }
 
-        function renderScore(data) {
-            document.getElementById('score-home').innerText = data.score_home;
-            document.getElementById('score-away').innerText = data.score_away;
+        function updateDOM() {
+            document.getElementById('score-home').innerText = matchData.score_home;
+            document.getElementById('score-away').innerText = matchData.score_away;
+            document.getElementById('home-name').innerText = matchData.home_team;
+            document.getElementById('away-name').innerText = matchData.away_team;
+            
+            const btn = document.getElementById('btn-timer');
+            btn.innerText = matchData.is_running ? 'PAUSE' : 'START';
+            btn.className = matchData.is_running ? 'bg-red-500 text-white px-8 py-3 rounded-full font-bold' : 'bg-green-500 text-black px-8 py-3 rounded-full font-bold';
+            
+            const badge = document.getElementById('status-badge');
+            badge.innerText = matchData.is_running ? 'En cours' : 'Arrêté';
+            badge.className = matchData.is_running ? 'bg-green-600 text-[10px] font-bold px-2 py-1 rounded uppercase animate-pulse' : 'bg-slate-700 text-[10px] font-bold px-2 py-1 rounded uppercase';
+            document.getElementById('connection-dot').className = 'w-2 h-2 rounded-full bg-green-500';
         }
 
-        // LOGIQUE ADMIN
-        async function updateScore(column, increment) {
-            // Vibration mobile
-            if (window.navigator.vibrate) window.navigator.vibrate(50);
+        function runLocalTimer() {
+            if (!matchData) return;
+            let totalSeconds = matchData.timer_seconds;
+            if (matchData.is_running && matchData.last_start_time) {
+                const elapsedSinceLastStart = Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
+                totalSeconds += elapsedSinceLastStart;
+            }
+            const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const secs = (totalSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+        }
 
-            // On récupère la valeur actuelle directement pour éviter les erreurs de désynchronisation
-            const { data } = await supabaseClient
-                .from('matches')
-                .select(column)
-                .eq('id', MATCH_ID)
-                .single();
+        // ACTIONS ADMIN
+        async function toggleTimer() {
+            const now = new Date().toISOString();
+            if (!matchData.is_running) {
+                await supabaseClient.from('matches').update({ is_running: true, last_start_time: now }).eq('id', MATCH_ID);
+            } else {
+                const addedSeconds = Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
+                await supabaseClient.from('matches').update({ 
+                    is_running: false, 
+                    timer_seconds: matchData.timer_seconds + addedSeconds,
+                    last_start_time: null 
+                }).eq('id', MATCH_ID);
+            }
+        }
 
-            const newValue = Math.max(0, data[column] + increment);
+        async function resetTimer() {
+            if(confirm("Reset le chrono ?")) {
+                await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null }).eq('id', MATCH_ID);
+            }
+        }
 
-            const { error } = await supabaseClient
-                .from('matches')
-                .update({ [column]: newValue })
-                .eq('id', MATCH_ID);
-
-            if (error) alert("Erreur de mise à jour");
+        async function updateScore(col, inc) {
+            const { data } = await supabaseClient.from('matches').select(col).eq('id', MATCH_ID).single();
+            await supabaseClient.from('matches').update({ [col]: Math.max(0, data[col] + inc) }).eq('id', MATCH_ID);
         }
 
         init();
     </script>
+</body>
+</html>
 </body>
 </html>
