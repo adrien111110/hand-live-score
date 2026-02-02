@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Live Score</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .score-font { font-family: 'Orbitron', sans-serif; }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
+
+    <div class="w-full max-w-md flex justify-between items-center mb-8 pt-4">
+        <span class="bg-red-600 animate-pulse text-xs font-bold px-2 py-1 rounded uppercase tracking-widest">Live</span>
+        <h1 class="text-slate-400 text-sm font-semibold tracking-tighter uppercase">Championnat Handball</h1>
+        <div id="connection-status" class="w-2 h-2 rounded-full bg-green-500"></div>
+    </div>
+
+    <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
+        <div class="flex justify-between items-center gap-4">
+            <div class="flex-1 text-center">
+                <h2 id="home-name" class="text-lg font-bold text-slate-300 mb-2 truncate text-uppercase italic">MAISON</h2>
+                <div id="score-home" class="score-font text-7xl md:text-8xl text-white">0</div>
+            </div>
+
+            <div class="text-4xl text-slate-700 font-bold">:</div>
+
+            <div class="flex-1 text-center">
+                <h2 id="away-name" class="text-lg font-bold text-slate-300 mb-2 truncate text-uppercase italic">EXTÉRIEUR</h2>
+                <div id="score-away" class="score-font text-7xl md:text-8xl text-white">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="hidden w-full max-w-md mt-10 space-y-6">
+        <div class="h-px bg-slate-800 w-full"></div>
+        <p class="text-center text-slate-500 text-xs uppercase tracking-widest font-bold">Tableau de commande</p>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <button onclick="updateScore('score_home', 1)" class="bg-slate-100 text-black font-bold py-4 rounded-2xl active:scale-95 transition-transform">
+                    +1 MAISON
+                </button>
+                <button onclick="updateScore('score_home', -1)" class="bg-slate-800 text-slate-400 py-2 rounded-xl text-sm border border-slate-700">
+                    -1 Correction
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="updateScore('score_away', 1)" class="bg-indigo-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform">
+                    +1 EXT.
+                </button>
+                <button onclick="updateScore('score_away', -1)" class="bg-slate-800 text-slate-400 py-2 rounded-xl text-sm border border-slate-700">
+                    -1 Correction
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const supabaseUrl = 'https://rmfcixwuyltwpotijozd.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZmNpeHd1eWx0d3BvdGlqb3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjQyMzgsImV4cCI6MjA4NTYwMDIzOH0.IW9b7431_xQlM1rydhOO551QgIq3bVEOgM5KllSzfTs';
+        const MATCH_ID = 'd470bcc2-8b48-4881-8c9f-ac25c9002d2e';
+        const ADMIN_SECRET = "coach2026"; 
+
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // INITIALISATION
+        async function init() {
+            // 1. Charger le score actuel
+            const { data, error } = await supabaseClient
+                .from('matches')
+                .select('*')
+                .eq('id', MATCH_ID)
+                .single();
+            
+            if (data) {
+                renderScore(data);
+                document.getElementById('home-name').innerText = data.home_team;
+                document.getElementById('away-name').innerText = data.away_team;
+            }
+
+            // 2. Écouter le Realtime
+            supabaseClient
+                .channel('score-live')
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'matches',
+                    filter: `id=eq.${MATCH_ID}` 
+                }, payload => {
+                    renderScore(payload.new);
+                })
+                .subscribe();
+
+            // 3. Vérifier mode Admin
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('admin') === ADMIN_SECRET) {
+                document.getElementById('admin-panel').classList.remove('hidden');
+            }
+        }
+
+        function renderScore(data) {
+            document.getElementById('score-home').innerText = data.score_home;
+            document.getElementById('score-away').innerText = data.score_away;
+        }
+
+        // LOGIQUE ADMIN
+        async function updateScore(column, increment) {
+            // Vibration mobile
+            if (window.navigator.vibrate) window.navigator.vibrate(50);
+
+            // On récupère la valeur actuelle directement pour éviter les erreurs de désynchronisation
+            const { data } = await supabaseClient
+                .from('matches')
+                .select(column)
+                .eq('id', MATCH_ID)
+                .single();
+
+            const newValue = Math.max(0, data[column] + increment);
+
+            const { error } = await supabaseClient
+                .from('matches')
+                .update({ [column]: newValue })
+                .eq('id', MATCH_ID);
+
+            if (error) alert("Erreur de mise à jour");
+        }
+
+        init();
+    </script>
+</body>
+</html>
