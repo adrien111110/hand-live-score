@@ -69,11 +69,28 @@
     let activePenalties = [];
 
     async function init() {
+            // 1. Charger les données du match
         const m = await supabaseClient.from('matches').select('*').eq('id', MATCH_ID).single();
         matchData = m.data;
+        
+        // 2. Charger les pénalités actives
         const p = await supabaseClient.from('penalties').select('*').eq('match_id', MATCH_ID);
         activePenalties = p.data || [];
-
+    
+        // 3. Charger TOUTE la Timeline passée (AJOUT ICI)
+        const t = await supabaseClient
+            .from('timeline')
+            .select('*')
+            .eq('match_id', MATCH_ID)
+            .order('created_at', { ascending: true }); // On les prend dans l'ordre chronologique
+        
+        if (t.data) {
+            // On vide le container au cas où
+            document.getElementById('timeline-container').innerHTML = '';
+            // On les affiche un par un
+            t.data.forEach(event => addEventToUI(event));
+        }
+    
         updateDOM();
 
         supabaseClient.channel('match-updates').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, payload => {
@@ -155,25 +172,34 @@
         
     function addEventToUI(event) {
         const container = document.getElementById('timeline-container');
-        // Supprimer le message "en attente" si c'est le premier event
-        if (container.querySelector('p')) container.innerHTML = '';
+        
+        // Supprimer le message "en attente" s'il existe
+        const emptyMsg = container.querySelector('p');
+        if (emptyMsg) emptyMsg.remove();
     
         const div = document.createElement('div');
-        div.className = "flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800 animate-slide-in";
+        div.className = "flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800 mb-2";
         
-        const icon = event.event_type.includes('goal') ? '⚽' : '🟧';
+        const isGoal = event.event_type.includes('goal');
+        const icon = isGoal ? '⚽' : '🟧';
         const teamName = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
-        const label = event.event_type.includes('goal') ? 'BUT !' : "EXCLUSION 2'";
+        
+        let label = "";
+        if (event.event_type === 'goal_home' || event.event_type === 'goal_away') label = "BUT !";
+        if (event.event_type === 'penalty_home' || event.event_type === 'penalty_away') label = "EXCLUSION 2'";
     
         div.innerHTML = `
-            <span class="score-font text-amber-400 text-xs w-10">${event.match_time}</span>
+            <span class="score-font text-amber-400 text-[10px] w-10">${event.match_time}</span>
             <div class="flex-1">
-                <div class="text-[10px] text-slate-500 font-bold uppercase">${teamName}</div>
+                <div class="text-[8px] text-slate-500 font-bold uppercase">${teamName}</div>
                 <div class="text-xs font-bold">${label} (${event.score_snapshot})</div>
             </div>
             <span class="text-lg">${icon}</span>
         `;
-        container.prepend(div); // Ajoute le plus récent en haut
+    
+        // .prepend() ajoute l'élément au début de la liste (en haut)
+        // C'est ce qu'on veut pour que le dernier événement soit le plus visible
+        container.prepend(div);
     }
 
     // ACTIONS ADMIN
@@ -210,9 +236,24 @@
     }
 
     async function resetTimer() {
-        if(confirm("Tout remettre à zéro (match + pénalités) ?")) {
-            await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null }).eq('id', MATCH_ID);
+        if(confirm("Tout remettre à zéro (match + pénalités + historique) ?")) {
+            // Reset match
+            await supabaseClient.from('matches').update({ 
+                is_running: false, 
+                timer_seconds: 0, 
+                last_start_time: null,
+                score_home: 0,
+                score_away: 0
+            }).eq('id', MATCH_ID);
+    
+            // Supprimer pénalités
             await supabaseClient.from('penalties').delete().eq('match_id', MATCH_ID);
+    
+            // Supprimer Timeline (AJOUT ICI)
+            await supabaseClient.from('timeline').delete().eq('match_id', MATCH_ID);
+            
+            // Rafraîchir l'écran localement
+            location.reload(); 
         }
     }
 
