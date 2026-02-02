@@ -32,7 +32,14 @@
             </div>
         </div>
     </div>
-
+    
+    <div class="w-full max-w-lg mt-6">
+        <h3 class="text-[10px] uppercase tracking-widest text-slate-500 mb-3 px-2 font-bold">Fil du match</h3>
+        <div id="timeline-container" class="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            <p class="text-slate-600 text-xs italic p-4 text-center">Le match n'a pas encore débuté...</p>
+        </div>
+    </div>
+    
     <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/80 p-6 rounded-3xl border border-slate-700">
         <div class="flex justify-center gap-4">
             <button onclick="toggleTimer()" id="btn-timer" class="px-8 py-2 rounded-full font-bold bg-green-500 text-black">START</button>
@@ -83,12 +90,28 @@
             if (payload.eventType === 'DELETE') reloadPenalties();
         }).subscribe();
 
+        supabaseClient.channel('timeline-updates').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'timeline' }, payload => {
+            addEventToUI(payload.new);
+        }).subscribe();
+
         if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) 
             document.getElementById('admin-panel').classList.remove('hidden');
 
         setInterval(refreshTimers, 100); // Plus précis (100ms) pour le chrono
     }
 
+    async function logEvent(type) {
+        const matchTime = document.getElementById('timer-display').innerText;
+        const score = `${matchData.score_home} - ${matchData.score_away}`;
+    
+        await supabaseClient.from('timeline').insert({
+            match_id: MATCH_ID,
+            event_type: type,
+            match_time: matchTime,
+            score_snapshot: score
+        });
+    }
+        
     async function reloadPenalties() {
         const p = await supabaseClient.from('penalties').select('*').eq('match_id', MATCH_ID);
         activePenalties = p.data || [];
@@ -129,16 +152,37 @@
             </div>`;
         }).join('');
     }
+        
+    function addEventToUI(event) {
+        const container = document.getElementById('timeline-container');
+        // Supprimer le message "en attente" si c'est le premier event
+        if (container.querySelector('p')) container.innerHTML = '';
+    
+        const div = document.createElement('div');
+        div.className = "flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800 animate-slide-in";
+        
+        const icon = event.event_type.includes('goal') ? '⚽' : '🟧';
+        const teamName = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
+        const label = event.event_type.includes('goal') ? 'BUT !' : "EXCLUSION 2'";
+    
+        div.innerHTML = `
+            <span class="score-font text-amber-400 text-xs w-10">${event.match_time}</span>
+            <div class="flex-1">
+                <div class="text-[10px] text-slate-500 font-bold uppercase">${teamName}</div>
+                <div class="text-xs font-bold">${label} (${event.score_snapshot})</div>
+            </div>
+            <span class="text-lg">${icon}</span>
+        `;
+        container.prepend(div); // Ajoute le plus récent en haut
+    }
 
     // ACTIONS ADMIN
     async function addPenalty(team) {
-        // La pénalité finit au (Temps de match actuel + 120s)
         const endsAtMatch = getCurrentMatchSeconds() + 120;
         await supabaseClient.from('penalties').insert({ 
-            match_id: MATCH_ID, 
-            team, 
-            ends_at_match_seconds: endsAtMatch 
+            match_id: MATCH_ID, team, ends_at_match_seconds: endsAtMatch 
         });
+        logEvent(team === 'home' ? 'penalty_home' : 'penalty_away');
     }
 
     async function toggleTimer() {
@@ -157,7 +201,12 @@
 
     async function updateScore(col, inc) {
         const { data } = await supabaseClient.from('matches').select(col).eq('id', MATCH_ID).single();
-        await supabaseClient.from('matches').update({ [col]: Math.max(0, data[col] + inc) }).eq('id', MATCH_ID);
+        const newScore = Math.max(0, data[col] + inc);
+        await supabaseClient.from('matches').update({ [col]: newScore }).eq('id', MATCH_ID);
+    
+        if (inc > 0) {
+            logEvent(col === 'score_home' ? 'goal_home' : 'goal_away');
+        }
     }
 
     async function resetTimer() {
