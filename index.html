@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Live Score & Chrono</title>
+    <title>Hand Live - Score & Penalties</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
@@ -11,46 +11,42 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
 
-    <div class="w-full max-w-md flex justify-between items-center mb-4 pt-4">
-        <span id="status-badge" class="bg-slate-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest">Attente</span>
-        <div id="connection-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
-    </div>
-
-    <div class="mb-6 text-center">
+    <div class="mt-6 text-center">
         <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
     </div>
 
-    <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800 mb-8">
-        <div class="flex justify-between items-center">
+    <div class="w-full max-w-lg mt-8 bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
+        <div class="flex justify-between items-start">
             <div class="flex-1 text-center">
-                <h2 id="home-name" class="text-xs font-bold text-slate-500 mb-2 uppercase italic">MAISON</h2>
-                <div id="score-home" class="score-font text-7xl">0</div>
+                <h2 id="home-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">MAISON</h2>
+                <div id="score-home" class="score-font text-7xl mb-4">0</div>
+                <div id="penalties-home" class="space-y-2"></div>
             </div>
-            <div class="text-4xl text-slate-800 font-bold">:</div>
+
+            <div class="text-4xl text-slate-800 font-bold mt-8">:</div>
+
             <div class="flex-1 text-center">
-                <h2 id="away-name" class="text-xs font-bold text-slate-500 mb-2 uppercase italic">EXTÉRIEUR</h2>
-                <div id="score-away" class="score-font text-7xl">0</div>
+                <h2 id="away-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">EXTÉRIEUR</h2>
+                <div id="score-away" class="score-font text-7xl mb-4">0</div>
+                <div id="penalties-away" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
-    <div id="admin-panel" class="hidden w-full max-w-md space-y-6 bg-slate-900/50 p-6 rounded-3xl border border-dashed border-slate-700">
-        <div class="flex flex-col items-center gap-3">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Contrôle du Temps</p>
-            <div class="flex gap-4">
-                <button onclick="toggleTimer()" id="btn-timer" class="bg-amber-500 text-black px-8 py-3 rounded-full font-bold">START</button>
-                <button onclick="resetTimer()" class="bg-slate-800 px-4 py-3 rounded-full text-xs">Reset</button>
-            </div>
+    <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/80 p-6 rounded-3xl border border-slate-700">
+        <div class="flex justify-center gap-4">
+            <button onclick="toggleTimer()" id="btn-timer" class="px-8 py-2 rounded-full font-bold bg-green-500 text-black">START</button>
+            <button onclick="resetTimer()" class="text-xs text-slate-500 uppercase">Reset</button>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-2">
-                <button onclick="updateScore('score_home', 1)" class="bg-white text-black font-bold py-4 rounded-xl">+1 MAISON</button>
-                <button onclick="updateScore('score_home', -1)" class="text-slate-500 text-xs py-1 text-center">Correction -1</button>
+        <div class="grid grid-cols-2 gap-6">
+            <div class="space-y-3">
+                <button onclick="updateScore('score_home', 1)" class="w-full bg-white text-black font-bold py-4 rounded-xl">+1 BUT</button>
+                <button onclick="addPenalty('home')" class="w-full bg-orange-600/20 border border-orange-600 text-orange-500 py-2 rounded-lg text-xs font-bold">EXCLUSION 2'</button>
             </div>
-            <div class="flex flex-col gap-2">
-                <button onclick="updateScore('score_away', 1)" class="bg-indigo-600 text-white font-bold py-4 rounded-xl">+1 EXT.</button>
-                <button onclick="updateScore('score_away', -1)" class="text-slate-500 text-xs py-1 text-center">Correction -1</button>
+            <div class="space-y-3">
+                <button onclick="updateScore('score_away', 1)" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl">+1 BUT</button>
+                <button onclick="addPenalty('away')" class="w-full bg-orange-600/20 border border-orange-600 text-orange-500 py-2 rounded-lg text-xs font-bold">EXCLUSION 2'</button>
             </div>
         </div>
     </div>
@@ -63,26 +59,34 @@
 
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         let matchData = null;
-        let localInterval = null;
+        let activePenalties = [];
 
         async function init() {
-            const { data } = await supabaseClient.from('matches').select('*').eq('id', MATCH_ID).single();
-            if (data) {
-                matchData = data;
-                updateDOM();
-            }
+            // Initial Load
+            const m = await supabaseClient.from('matches').select('*').eq('id', MATCH_ID).single();
+            matchData = m.data;
+            const p = await supabaseClient.from('penalties').select('*').eq('match_id', MATCH_ID);
+            activePenalties = p.data || [];
 
-            supabaseClient.channel('live').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, payload => {
+            updateDOM();
+
+            // Realtime Matches
+            supabaseClient.channel('m').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, payload => {
                 matchData = payload.new;
                 updateDOM();
             }).subscribe();
 
-            if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) {
-                document.getElementById('admin-panel').classList.remove('hidden');
-            }
+            // Realtime Penalties
+            supabaseClient.channel('p').on('postgres_changes', { event: '*', schema: 'public', table: 'penalties' }, payload => {
+                if (payload.eventType === 'INSERT') activePenalties.push(payload.new);
+                if (payload.eventType === 'DELETE') activePenalties = activePenalties.filter(x => x.id !== payload.old.id);
+                updateDOM();
+            }).subscribe();
 
-            // Rafraîchissement visuel du chrono toutes les secondes
-            setInterval(runLocalTimer, 1000);
+            if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) 
+                document.getElementById('admin-panel').classList.remove('hidden');
+
+            setInterval(refreshTimers, 1000);
         }
 
         function updateDOM() {
@@ -90,47 +94,51 @@
             document.getElementById('score-away').innerText = matchData.score_away;
             document.getElementById('home-name').innerText = matchData.home_team;
             document.getElementById('away-name').innerText = matchData.away_team;
-            
-            const btn = document.getElementById('btn-timer');
-            btn.innerText = matchData.is_running ? 'PAUSE' : 'START';
-            btn.className = matchData.is_running ? 'bg-red-500 text-white px-8 py-3 rounded-full font-bold' : 'bg-green-500 text-black px-8 py-3 rounded-full font-bold';
-            
-            const badge = document.getElementById('status-badge');
-            badge.innerText = matchData.is_running ? 'En cours' : 'Arrêté';
-            badge.className = matchData.is_running ? 'bg-green-600 text-[10px] font-bold px-2 py-1 rounded uppercase animate-pulse' : 'bg-slate-700 text-[10px] font-bold px-2 py-1 rounded uppercase';
-            document.getElementById('connection-dot').className = 'w-2 h-2 rounded-full bg-green-500';
+            document.getElementById('btn-timer').innerText = matchData.is_running ? 'PAUSE' : 'START';
+            document.getElementById('btn-timer').className = matchData.is_running ? 'px-8 py-2 rounded-full font-bold bg-red-500 text-white' : 'px-8 py-2 rounded-full font-bold bg-green-500 text-black';
         }
 
-        function runLocalTimer() {
+        function refreshTimers() {
             if (!matchData) return;
-            let totalSeconds = matchData.timer_seconds;
+            
+            // Match Timer
+            let total = matchData.timer_seconds;
             if (matchData.is_running && matchData.last_start_time) {
-                const elapsedSinceLastStart = Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
-                totalSeconds += elapsedSinceLastStart;
+                total += Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
             }
-            const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-            const secs = (totalSeconds % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+            document.getElementById('timer-display').innerText = `${Math.floor(total/60).toString().padStart(2,'0')}:${(total%60).toString().padStart(2,'0')}`;
+
+            // Penalties
+            renderPenalties('home');
+            renderPenalties('away');
         }
 
-        // ACTIONS ADMIN
+        function renderPenalties(team) {
+            const container = document.getElementById(`penalties-${team}`);
+            const now = new Date();
+            const current = activePenalties.filter(p => p.team === team && new Date(p.ends_at) > now);
+            
+            container.innerHTML = current.map(p => {
+                const diff = Math.floor((new Date(p.ends_at) - now) / 1000);
+                const m = Math.floor(diff/60);
+                const s = diff%60;
+                return `<div class="bg-orange-600 text-black text-[10px] font-bold py-1 px-2 rounded animate-pulse">2' - ${m}:${s.toString().padStart(2,'0')}</div>`;
+            }).join('');
+        }
+
+        async function addPenalty(team) {
+            const endsAt = new Date(Date.now() + 120 * 1000).toISOString();
+            await supabaseClient.from('penalties').insert({ match_id: MATCH_ID, team, ends_at: endsAt });
+        }
+
+        // Réutiliser les fonctions updateScore, toggleTimer, resetTimer du code précédent...
         async function toggleTimer() {
             const now = new Date().toISOString();
             if (!matchData.is_running) {
                 await supabaseClient.from('matches').update({ is_running: true, last_start_time: now }).eq('id', MATCH_ID);
             } else {
-                const addedSeconds = Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
-                await supabaseClient.from('matches').update({ 
-                    is_running: false, 
-                    timer_seconds: matchData.timer_seconds + addedSeconds,
-                    last_start_time: null 
-                }).eq('id', MATCH_ID);
-            }
-        }
-
-        async function resetTimer() {
-            if(confirm("Reset le chrono ?")) {
-                await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null }).eq('id', MATCH_ID);
+                const added = Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
+                await supabaseClient.from('matches').update({ is_running: false, timer_seconds: matchData.timer_seconds + added, last_start_time: null }).eq('id', MATCH_ID);
             }
         }
 
@@ -139,9 +147,9 @@
             await supabaseClient.from('matches').update({ [col]: Math.max(0, data[col] + inc) }).eq('id', MATCH_ID);
         }
 
+        async function resetTimer() { if(confirm("Reset?")) await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null }).eq('id', MATCH_ID); }
+
         init();
     </script>
-</body>
-</html>
 </body>
 </html>
