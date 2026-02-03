@@ -54,17 +54,17 @@
             <p class="text-slate-600 text-xs italic p-4 text-center">Le match n'a pas encore débuté...</p>
         </div>
     </div>
-    
-    <div id="admin-panel" class="flex justify-center mb-4">
-        <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700">
-            <option value="1ère M-T">1ère Mi-temps</option>
-            <option value="Pause">Pause</option>
-            <option value="2ème M-T">2ème Mi-temps</option>
-            <option value="Match Terminé">Match Terminé</option>
-        </select>
-    </div>
 
     <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/80 p-6 rounded-3xl border border-slate-700">
+        <div class="flex justify-center mb-4">
+            <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700">
+                <option value="1ère M-T">1ère Mi-temps</option>
+                <option value="Pause">Pause</option>
+                <option value="2ème M-T">2ème Mi-temps</option>
+                <option value="Match Terminé">Match Terminé</option>
+            </select>
+        </div>
+        
         <div class="flex justify-center gap-4">
             <button onclick="toggleTimer()" id="btn-timer" class="px-8 py-2 rounded-full font-bold bg-green-500 text-black">START</button>
             <button onclick="resetTimer()" class="text-xs text-slate-500 uppercase">Reset</button>
