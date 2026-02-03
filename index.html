@@ -28,10 +28,6 @@
         <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
     </div>
 
-    <div class="mt-6 text-center">
-        <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
-    </div>
-
    <div class="w-full max-w-lg mt-8 bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
     <div class="flex justify-between items-start">
         <div class="flex-1 text-center flex flex-col items-center">
@@ -59,7 +55,7 @@
         </div>
     </div>
     
-    <div class="flex justify-center mb-4">
+    <div id="adùin-panel" class="flex justify-center mb-4">
         <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700">
             <option value="1ère M-T">1ère Mi-temps</option>
             <option value="Pause">Pause</option>
@@ -70,7 +66,7 @@
 
     <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/80 p-6 rounded-3xl border border-slate-700">
         <div class="flex justify-center gap-4">
-            <button onclick="toggleTimer()" id="btn-timer" class="px-8 py-2 rounded-full font-bold bg-green-500 text-black">START</button>
+            <bPutton onclick="toggleTimer()" id="btn-timer" class="px-8 py-2 rounded-full font-bold bg-green-500 text-black">START</button>
             <button onclick="resetTimer()" class="text-xs text-slate-500 uppercase">Reset</button>
         </div>
 
