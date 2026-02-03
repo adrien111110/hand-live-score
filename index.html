@@ -7,86 +7,97 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
-    <style> .score-font { font-family: 'Orbitron', sans-serif; } </style>
+    <style>
+        .score-font { font-family: 'Orbitron', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
 
-    <div class="w-full max-w-lg mb-4 px-4 flex flex-col items-center">
-        <div class="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <span id="display-location">Lieu du match</span>
+    <div class="w-full max-w-lg mb-4 text-center">
+        <div class="flex justify-center items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+            <span id="display-location">Chargement...</span>
             <span class="text-slate-700">•</span>
             <span id="display-start-time">--:--</span>
         </div>
-        <div id="display-period" class="mt-2 bg-slate-800 text-slate-300 text-[9px] px-2 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-wider">1ère M-T</div>
+        <div id="display-period" class="mt-2 inline-block bg-slate-800 text-slate-300 text-[9px] px-3 py-1 rounded-full border border-slate-700 font-bold uppercase">1ère M-T</div>
     </div>
 
     <div class="text-center mb-6">
-        <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
+        <div id="timer-display" class="score-font text-6xl text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">00:00</div>
     </div>
 
     <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
         <div class="flex justify-between items-start">
             <div class="flex-1 text-center flex flex-col items-center">
-                <img id="home-logo" src="" class="w-12 h-12 mb-2 object-contain hidden" alt="">
-                <h2 id="home-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">MAISON</h2>
+                <img id="home-logo" src="" class="w-14 h-14 mb-2 object-contain hidden">
+                <h2 id="home-name" class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-tighter">DOMICILE</h2>
                 <div id="score-home" class="score-font text-6xl mb-4">0</div>
-                <div id="penalties-home" class="space-y-2 w-full"></div>
+                <div id="penalties-home" class="space-y-1 w-full"></div>
             </div>
-            <div class="text-4xl text-slate-800 font-bold mt-16">:</div>
+            <div class="text-4xl text-slate-800 font-bold mt-16 px-2">:</div>
             <div class="flex-1 text-center flex flex-col items-center">
-                <img id="away-logo" src="" class="w-12 h-12 mb-2 object-contain hidden" alt="">
-                <h2 id="away-name" class="text-xs font-bold text-slate-500 mb-2 uppercase">EXTÉRIEUR</h2>
+                <img id="away-logo" src="" class="w-14 h-14 mb-2 object-contain hidden">
+                <h2 id="away-name" class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-tighter">EXTÉRIEUR</h2>
                 <div id="score-away" class="score-font text-6xl mb-4">0</div>
-                <div id="penalties-away" class="space-y-2 w-full"></div>
+                <div id="penalties-away" class="space-y-1 w-full"></div>
             </div>
         </div>
     </div>
 
     <div class="w-full max-w-lg mt-6">
         <h3 class="text-[10px] uppercase tracking-widest text-slate-500 mb-3 px-2 font-bold italic">Fil du match</h3>
-        <div id="timeline-container" class="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar"></div>
+        <div id="timeline-container" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <p class="text-slate-600 text-xs italic p-4 text-center">En attente d'événements...</p>
+        </div>
     </div>
 
-    <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/90 p-6 rounded-3xl border border-slate-700 shadow-2xl">
+    <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/95 p-6 rounded-3xl border border-slate-700 shadow-2xl">
         <div class="flex flex-col items-center gap-4">
-            <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700 w-full">
+            <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-3 rounded-xl border border-slate-700 w-full focus:outline-none">
                 <option value="1ère M-T">1ère Mi-temps</option>
                 <option value="Pause">Pause</option>
                 <option value="2ème M-T">2ème Mi-temps</option>
                 <option value="Match Terminé">Match Terminé</option>
             </select>
+            
             <div class="flex items-center gap-4">
-                <button onclick="adjustTimer(-10)" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 text-slate-400">-10</button>
-                <button id="btn-timer" onclick="toggleTimer()" class="px-8 py-3 rounded-full font-bold bg-green-500 text-black shadow-lg shadow-green-500/20">START</button>
-                <button onclick="adjustTimer(10)" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 text-slate-400">+10</button>
+                <button onclick="adjustTimer(-10)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 font-bold">-10s</button>
+                <button id="btn-timer" onclick="toggleTimer()" class="px-10 py-3 rounded-full font-bold bg-green-500 text-black shadow-lg shadow-green-500/20 active:scale-95 transition-all">START</button>
+                <button onclick="adjustTimer(10)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 font-bold">+10s</button>
             </div>
-            <button onclick="resetTimer()" class="text-[9px] text-slate-600 uppercase tracking-widest">Reset Complet</button>
         </div>
 
         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-            <div class="space-y-2">
-                <button onclick="updateScore('score_home', 1)" class="w-full bg-white text-black font-bold py-4 rounded-xl">+1 BUT</button>
-                <button onclick="addPenalty('home')" class="w-full bg-orange-600/10 border border-orange-600/50 text-orange-500 py-2 rounded-lg text-[10px] font-bold">2 MIN</button>
+            <div class="space-y-3 text-center">
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Maison</span>
+                <button onclick="updateScore('score_home', 1)" class="w-full bg-white text-black font-black py-5 rounded-2xl active:scale-95 transition-all">+1 BUT</button>
+                <button onclick="addPenalty('home')" class="w-full bg-orange-600/10 border border-orange-600 text-orange-500 py-2 rounded-xl text-[10px] font-bold uppercase">Exclusion 2'</button>
             </div>
-            <div class="space-y-2">
-                <button onclick="updateScore('score_away', 1)" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl">+1 BUT</button>
-                <button onclick="addPenalty('away')" class="w-full bg-orange-600/10 border border-orange-600/50 text-orange-500 py-2 rounded-lg text-[10px] font-bold">2 MIN</button>
+            <div class="space-y-3 text-center">
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Extérieur</span>
+                <button onclick="updateScore('score_away', 1)" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl active:scale-95 transition-all">+1 BUT</button>
+                <button onclick="addPenalty('away')" class="w-full bg-orange-600/10 border border-orange-600 text-orange-500 py-2 rounded-xl text-[10px] font-bold uppercase">Exclusion 2'</button>
             </div>
         </div>
+        <button onclick="resetTimer()" class="w-full text-[9px] text-slate-700 uppercase tracking-[0.3em] pt-4">Réinitialiser Match</button>
     </div>
 
-    <div id="player-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
-            <button onclick="confirmGoal(null)" class="w-full bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl mb-4 font-bold border border-slate-700">👤 Buteur Inconnu</button>
-            <div id="players-list" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2"></div>
-            <button onclick="closeModal()" class="w-full mt-6 text-slate-500 text-xs uppercase">Annuler</button>
+    <div id="player-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl">
+            <h3 class="text-center font-bold text-slate-400 text-sm mb-4 uppercase tracking-widest">Qui a marqué ?</h3>
+            <button onclick="confirmGoal(null)" class="w-full bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl mb-4 font-bold border border-slate-700 transition-colors">👤 Buteur Non Précisé</button>
+            <div id="players-list" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar"></div>
+            <button onclick="closeModal()" class="w-full mt-6 text-slate-500 text-[10px] uppercase font-bold tracking-widest">Annuler</button>
         </div>
     </div>
 
     <script>
-        const supabaseUrl = 'https://rmfcixwuyltwpotijozd.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZmNpeHd1eWx0d3BvdGlqb3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjQyMzgsImV4cCI6MjA4NTYwMDIzOH0.IW9b7431_xQlM1rydhOO551QgIq3bVEOgM5KllSzfTs';
-        const MATCH_ID = '7d6708ba-b37c-4719-8aea-da68cf7d6147';
+        // CONFIGURATION SUPABASE
+        const supabaseUrl = 'TON_URL';
+        const supabaseKey = 'TA_CLE_ANON';
+        const MATCH_ID = 'TON_ID_MATCH';
         const ADMIN_SECRET = "coach2026";
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -96,27 +107,30 @@
         let pendingGoalTeam = null;
 
         async function init() {
-            // Charger Match
+            // 1. Charger les données du match
             const { data: m } = await supabaseClient.from('matches').select('*').eq('id', MATCH_ID).single();
             matchData = m;
             
-            // Charger Joueurs
+            // 2. Charger les joueurs depuis la table
             const { data: pList } = await supabaseClient.from('players').select('*').eq('match_id', MATCH_ID).order('number');
             teamPlayers = pList || [];
 
-            // Charger Historique Timeline
-            const { data: t } = await supabaseClient.from('timeline').select('*').eq('match_id', MATCH_ID).order('created_at', { ascending: true });
-            if (t) {
+            // 3. Charger l'historique de la timeline
+            const { data: tHistory } = await supabaseClient.from('timeline').select('*').eq('match_id', MATCH_ID).order('created_at', { ascending: true });
+            if (tHistory && tHistory.length > 0) {
                 document.getElementById('timeline-container').innerHTML = '';
-                t.forEach(event => addEventToUI(event));
+                tHistory.forEach(event => addEventToUI(event));
             }
 
-            // Realtime
-            supabaseClient.channel('live').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, p => { matchData = p.new; updateDOM(); }).subscribe();
-            supabaseClient.channel('pen').on('postgres_changes', { event: '*', schema: 'public', table: 'penalties' }, p => { reloadPenalties(); }).subscribe();
-            supabaseClient.channel('time').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'timeline' }, p => { addEventToUI(p.new); }).subscribe();
+            // 4. Ecoute Realtime
+            supabaseClient.channel('match-live').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, p => { matchData = p.new; updateDOM(); }).subscribe();
+            supabaseClient.channel('penalties-live').on('postgres_changes', { event: '*', schema: 'public', table: 'penalties' }, () => reloadPenalties()).subscribe();
+            supabaseClient.channel('timeline-live').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'timeline' }, p => addEventToUI(p.new)).subscribe();
 
-            if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) document.getElementById('admin-panel').classList.remove('hidden');
+            // Check Admin
+            if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) {
+                document.getElementById('admin-panel').classList.remove('hidden');
+            }
             
             reloadPenalties();
             setInterval(refreshTimers, 100);
@@ -124,45 +138,47 @@
         }
 
         function updateDOM() {
+            if (!matchData) return;
             document.getElementById('score-home').innerText = matchData.score_home;
             document.getElementById('score-away').innerText = matchData.score_away;
             document.getElementById('home-name').innerText = matchData.home_team;
             document.getElementById('away-name').innerText = matchData.away_team;
-            document.getElementById('display-location').innerText = matchData.match_location || "Gymnase";
+            document.getElementById('display-location').innerText = matchData.match_location || "Handball";
             document.getElementById('display-start-time').innerText = matchData.match_start_time || "--:--";
             document.getElementById('display-period').innerText = matchData.period;
             
-            if (matchData.home_logo_url) { const l = document.getElementById('home-logo'); l.src = matchData.home_logo_url; l.classList.remove('hidden'); }
-            if (matchData.away_logo_url) { const l = document.getElementById('away-logo'); l.src = matchData.away_logo_url; l.classList.remove('hidden'); }
+            if (matchData.home_logo_url) { const img = document.getElementById('home-logo'); img.src = matchData.home_logo_url; img.classList.remove('hidden'); }
+            if (matchData.away_logo_url) { const img = document.getElementById('away-logo'); img.src = matchData.away_logo_url; img.classList.remove('hidden'); }
             
             const btn = document.getElementById('btn-timer');
             btn.innerText = matchData.is_running ? 'PAUSE' : 'START';
-            btn.className = matchData.is_running ? 'px-8 py-3 rounded-full font-bold bg-red-600 text-white' : 'px-8 py-3 rounded-full font-bold bg-green-500 text-black';
+            btn.className = matchData.is_running ? 'px-10 py-3 rounded-full font-bold bg-red-600 text-white' : 'px-10 py-3 rounded-full font-bold bg-green-500 text-black';
         }
 
         async function updateScore(col, inc) {
             if (inc > 0) {
                 pendingGoalTeam = col;
-                openModal(col);
+                openPlayerModal(col);
             } else {
                 const { data } = await supabaseClient.from('matches').select(col).eq('id', MATCH_ID).single();
                 await supabaseClient.from('matches').update({ [col]: Math.max(0, data[col] - 1) }).eq('id', MATCH_ID);
             }
         }
 
-        function openModal(team) {
+        function openPlayerModal(team) {
             const list = document.getElementById('players-list');
             list.innerHTML = '';
+            // On n'affiche les joueurs que pour l'équipe domicile
             if (team === 'score_home') {
                 teamPlayers.forEach(p => {
                     const b = document.createElement('button');
-                    b.className = "bg-slate-800 p-3 rounded-xl text-xs font-bold border border-slate-700";
+                    b.className = "bg-slate-800 p-3 rounded-xl text-[11px] font-bold border border-slate-700 hover:bg-indigo-600 transition-colors";
                     b.innerText = `#${p.number} ${p.name}`;
-                    b.onclick = () => confirmGoal(`#${p.number} ${p.name}`);
+                    b.onclick = () => confirmGoal(`${p.name} (#${p.number})`);
                     list.appendChild(b);
                 });
             } else {
-                list.innerHTML = '<p class="col-span-2 text-slate-600 text-[10px] italic text-center py-4">Equipe adverse</p>';
+                list.innerHTML = '<p class="col-span-2 text-slate-600 text-[10px] italic text-center py-4 uppercase font-bold">Équipe Extérieure</p>';
             }
             document.getElementById('player-modal').classList.remove('hidden');
         }
@@ -171,18 +187,23 @@
 
         async function confirmGoal(playerName) {
             const col = pendingGoalTeam;
+            // 1. Calculer le score APRES le but pour la timeline
             const { data } = await supabaseClient.from('matches').select(col).eq('id', MATCH_ID).single();
             const newVal = data[col] + 1;
+            
+            // 2. Update du score
             await supabaseClient.from('matches').update({ [col]: newVal }).eq('id', MATCH_ID);
 
+            // 3. Préparer le snapshot du score
             const sH = col === 'score_home' ? newVal : matchData.score_home;
             const sA = col === 'score_away' ? newVal : matchData.score_away;
 
+            // 4. Enregistrer dans la Timeline
             await supabaseClient.from('timeline').insert({
                 match_id: MATCH_ID,
                 event_type: col === 'score_home' ? 'goal_home' : 'goal_away',
                 match_time: document.getElementById('timer-display').innerText,
-                score_snapshot: `${sH} - ${sA}`,
+                score_snapshot: `${sH}-${sA}`,
                 player_name: playerName
             });
             closeModal();
@@ -190,25 +211,34 @@
 
         function addEventToUI(event) {
             const container = document.getElementById('timeline-container');
-            if (container.querySelector('p')) container.innerHTML = '';
+            if (container.innerText.includes("attente")) container.innerHTML = '';
+
             const isPeriod = event.event_type === 'period_change';
             const div = document.createElement('div');
-            div.className = `flex items-center gap-3 p-3 rounded-xl border mb-2 ${isPeriod ? 'bg-amber-500/10 border-amber-500/30 border-l-4 border-l-amber-500' : 'bg-slate-900/50 border-slate-800'}`;
+            div.className = `flex items-center gap-3 p-3 rounded-2xl border mb-2 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 ${
+                isPeriod ? 'bg-amber-500/10 border-amber-500/30 border-l-4 border-l-amber-500' : 'bg-slate-900/60 border-slate-800'
+            }`;
             
             let icon = "⚽", label = "", team = "";
             if (event.event_type.includes('goal')) {
-                label = `BUT${event.player_name ? ' de ' + event.player_name : ''} !`;
+                const buteur = event.player_name ? ` de <span class="text-white">${event.player_name}</span>` : "";
+                label = `<span class="text-amber-400 font-black">BUT</span>${buteur}`;
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
             } else if (event.event_type.includes('penalty')) {
-                label = "EXCLUSION 2'"; icon = "🟧";
+                label = "<span class='text-orange-500'>EXCLUSION 2'</span>"; icon = "🟧";
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
             } else if (isPeriod) {
-                label = event.player_name; icon = "🏁"; team = "MATCH";
+                label = `<span class="text-amber-400 font-bold">${event.player_name}</span>`; icon = "🏁"; team = "INFO";
             }
 
-            div.innerHTML = `<span class="score-font text-amber-400 text-[10px] w-10">${event.match_time}</span>
-                <div class="flex-1 leading-tight"><div class="text-[8px] text-slate-500 uppercase font-bold">${team}</div>
-                <div class="text-xs font-bold">${label} (${event.score_snapshot})</div></div><span>${icon}</span>`;
+            div.innerHTML = `
+                <span class="score-font text-amber-500/50 text-[10px] w-9">${event.match_time}</span>
+                <div class="flex-1 leading-tight">
+                    <div class="text-[8px] text-slate-500 uppercase font-black">${team}</div>
+                    <div class="text-xs font-bold text-slate-300">${label} <span class="text-slate-500 ml-1 text-[10px]">(${event.score_snapshot})</span></div>
+                </div>
+                <span class="text-lg">${icon}</span>
+            `;
             container.prepend(div);
         }
 
@@ -225,22 +255,25 @@
         async function adjustTimer(s) {
             let total = getCurrentMatchSeconds();
             let newVal = Math.max(0, total + s);
-            const up = { timer_seconds: newVal };
-            if (matchData.is_running) up.last_start_time = new Date().toISOString();
-            await supabaseClient.from('matches').update(up).eq('id', MATCH_ID);
+            const update = { timer_seconds: newVal };
+            if (matchData.is_running) update.last_start_time = new Date().toISOString();
+            await supabaseClient.from('matches').update(update).eq('id', MATCH_ID);
         }
 
         function getCurrentMatchSeconds() {
             if (!matchData) return 0;
             let t = matchData.timer_seconds;
-            if (matchData.is_running && matchData.last_start_time) t += Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
+            if (matchData.is_running && matchData.last_start_time) {
+                t += Math.floor((new Date() - new Date(matchData.last_start_time)) / 1000);
+            }
             return t;
         }
 
         function refreshTimers() {
             const s = getCurrentMatchSeconds();
             document.getElementById('timer-display').innerText = `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-            renderPenalties('home', s); renderPenalties('away', s);
+            renderPenalties('home', s); 
+            renderPenalties('away', s);
         }
 
         function renderPenalties(team, s) {
@@ -248,21 +281,42 @@
             const active = activePenalties.filter(p => p.team === team && p.ends_at_match_seconds > s);
             c.innerHTML = active.map(p => {
                 const r = p.ends_at_match_seconds - s;
-                return `<div class="bg-orange-600 text-black text-[9px] font-bold py-1 px-2 rounded">2' - ${Math.floor(r/60)}:${(r%60).toString().padStart(2,'0')}</div>`;
+                return `<div class="bg-orange-600 text-black text-[9px] font-black py-1 px-2 rounded-lg animate-pulse">2' - ${Math.floor(r/60)}:${(r%60).toString().padStart(2,'0')}</div>`;
             }).join('');
         }
 
         async function reloadPenalties() { const { data } = await supabaseClient.from('penalties').select('*').eq('match_id', MATCH_ID); activePenalties = data || []; }
+
         async function changePeriod(p) { 
             await supabaseClient.from('matches').update({ period: p }).eq('id', MATCH_ID); 
-            await supabaseClient.from('timeline').insert({ match_id: MATCH_ID, event_type: 'period_change', match_time: document.getElementById('timer-display').innerText, score_snapshot: `${matchData.score_home} - ${matchData.score_away}`, player_name: p });
+            await supabaseClient.from('timeline').insert({ 
+                match_id: MATCH_ID, 
+                event_type: 'period_change', 
+                match_time: document.getElementById('timer-display').innerText, 
+                score_snapshot: `${matchData.score_home}-${matchData.score_away}`, 
+                player_name: p 
+            });
         }
+
         async function addPenalty(team) {
             const end = getCurrentMatchSeconds() + 120;
             await supabaseClient.from('penalties').insert({ match_id: MATCH_ID, team, ends_at_match_seconds: end });
-            await supabaseClient.from('timeline').insert({ match_id: MATCH_ID, event_type: team === 'home' ? 'penalty_home' : 'penalty_away', match_time: document.getElementById('timer-display').innerText, score_snapshot: `${matchData.score_home} - ${matchData.score_away}` });
+            await supabaseClient.from('timeline').insert({ 
+                match_id: MATCH_ID, 
+                event_type: team === 'home' ? 'penalty_home' : 'penalty_away', 
+                match_time: document.getElementById('timer-display').innerText, 
+                score_snapshot: `${matchData.score_home}-${matchData.score_away}` 
+            });
         }
-        async function resetTimer() { if(confirm("Reset?")) { await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null, score_home: 0, score_away: 0 }).eq('id', MATCH_ID); await supabaseClient.from('penalties').delete().eq('match_id', MATCH_ID); await supabaseClient.from('timeline').delete().eq('match_id', MATCH_ID); location.reload(); }}
+
+        async function resetTimer() { 
+            if(confirm("Réinitialiser tout le match ?")) { 
+                await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null, score_home: 0, score_away: 0, period: '1ère M-T' }).eq('id', MATCH_ID); 
+                await supabaseClient.from('penalties').delete().eq('match_id', MATCH_ID); 
+                await supabaseClient.from('timeline').delete().eq('match_id', MATCH_ID); 
+                location.reload(); 
+            }
+        }
 
         init();
     </script>
