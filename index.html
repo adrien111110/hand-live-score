@@ -20,6 +20,10 @@
         <div class="h-px w-12 bg-slate-800 mt-2"></div>
     </div>
 
+    <div class="flex items-center gap-2">
+        <span id="display-period" class="bg-slate-800 text-slate-300 text-[9px] px-2 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-wider">1ère M-T</span>
+    </div>
+
     <div class="text-center">
         <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
     </div>
@@ -55,6 +59,15 @@
         </div>
     </div>
     
+    <div class="flex justify-center mb-4">
+        <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700">
+            <option value="1ère M-T">1ère Mi-temps</option>
+            <option value="Pause">Pause</option>
+            <option value="2ème M-T">2ème Mi-temps</option>
+            <option value="Match Terminé">Match Terminé</option>
+        </select>
+    </div>
+
     <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/80 p-6 rounded-3xl border border-slate-700">
         <div class="flex justify-center gap-4">
             <button onclick="toggleTimer()" id="btn-timer" class="px-8 py-2 rounded-full font-bold bg-green-500 text-black">START</button>
@@ -185,39 +198,74 @@
         }).join('');
     }
         
-    function addEventToUI(event) {
+   function addEventToUI(event) {
         const container = document.getElementById('timeline-container');
         
         // Supprimer le message "en attente" s'il existe
         const emptyMsg = container.querySelector('p');
         if (emptyMsg) emptyMsg.remove();
-    
+
         const div = document.createElement('div');
-        div.className = "flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800 mb-2";
         
-        const isGoal = event.event_type.includes('goal');
-        const icon = isGoal ? '⚽' : '🟧';
-        const teamName = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
+        // On adapte le style si c'est un changement de période (plus voyant)
+        const isPeriod = event.event_type === 'period_change';
+        div.className = isPeriod 
+            ? "flex items-center gap-3 bg-amber-500/10 p-3 rounded-xl border border-amber-500/30 mb-2 border-l-4 border-l-amber-500"
+            : "flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800 mb-2";
         
+        // Détermination de l'icône et du label
+        let icon = "⚽";
         let label = "";
-        if (event.event_type === 'goal_home' || event.event_type === 'goal_away') label = "BUT !";
-        if (event.event_type === 'penalty_home' || event.event_type === 'penalty_away') label = "EXCLUSION 2'";
-    
+        let teamInfo = "";
+
+        if (event.event_type.includes('goal')) {
+            label = "BUT !";
+            icon = "⚽";
+            teamInfo = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
+        } 
+        else if (event.event_type.includes('penalty')) {
+            label = "EXCLUSION 2'";
+            icon = "🟧";
+            teamInfo = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
+        } 
+        else if (event.event_type === 'period_change') {
+            label = event.player_name; // Contient "Pause", "2ème M-T" ou "Match Terminé"
+            icon = "🏁";
+            teamInfo = "Information Match";
+        }
+
         div.innerHTML = `
             <span class="score-font text-amber-400 text-[10px] w-10">${event.match_time}</span>
             <div class="flex-1">
-                <div class="text-[8px] text-slate-500 font-bold uppercase">${teamName}</div>
-                <div class="text-xs font-bold">${label} (${event.score_snapshot})</div>
+                <div class="text-[8px] text-slate-500 font-bold uppercase">${teamInfo}</div>
+                <div class="text-xs font-bold ${isPeriod ? 'text-amber-500' : 'text-white'}">
+                    ${label} ${event.score_snapshot ? `(${event.score_snapshot})` : ''}
+                </div>
             </div>
             <span class="text-lg">${icon}</span>
         `;
-    
-        // .prepend() ajoute l'élément au début de la liste (en haut)
-        // C'est ce qu'on veut pour que le dernier événement soit le plus visible
+
+        // Toujours en haut de la liste
         container.prepend(div);
     }
-
+    
     // ACTIONS ADMIN
+    // 2. Fonction pour changer la période (Admin)
+    async function changePeriod(newPeriod) {
+        await supabaseClient.from('matches').update({ period: newPeriod }).eq('id', MATCH_ID);
+        
+        // On log l'événement dans la timeline
+        const matchTime = document.getElementById('timer-display').innerText;
+        await supabaseClient.from('timeline').insert({
+            match_id: MATCH_ID,
+            event_type: 'period_change',
+            match_time: matchTime,
+            score_snapshot: `${matchData.score_home} - ${matchData.score_away}`,
+            // On peut détourner un champ pour le nom de l'event (optionnel)
+            player_name: newPeriod 
+        });
+    }
+
     async function addPenalty(team) {
         const endsAtMatch = getCurrentMatchSeconds() + 120;
         await supabaseClient.from('penalties').insert({ 
@@ -324,6 +372,21 @@
         const btn = document.getElementById('btn-timer');
         btn.innerText = matchData.is_running ? 'PAUSE' : 'START';
         btn.className = matchData.is_running ? 'px-8 py-2 rounded-full font-bold bg-red-500 text-white' : 'px-8 py-2 rounded-full font-bold bg-green-500 text-black';
+        const periodDisplay = document.getElementById('display-period');
+        periodDisplay.innerText = matchData.period;
+
+        // Mise à jour du sélecteur admin pour qu'il soit synchro
+        if (document.getElementById('select-period')) {
+            document.getElementById('select-period').value = matchData.period;
+        }
+
+        // Si le match est terminé, on change le badge Live en "Terminé"
+        const statusBadge = document.getElementById('status-badge');
+        if (matchData.period === 'Match Terminé') {
+            statusBadge.innerText = 'Terminé';
+            statusBadge.classList.remove('bg-red-600', 'animate-pulse');
+            statusBadge.classList.add('bg-slate-600');
+        }
     }
 
     init();
