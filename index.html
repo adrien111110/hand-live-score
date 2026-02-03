@@ -3,13 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Live - Score & Penalties</title>
+    <title>SCHL Live Score</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style> .score-font { font-family: 'Orbitron', sans-serif; } </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
+
+    <div class="w-full max-w-lg mb-6 px-4 flex flex-col items-center">
+        <div class="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
+            <span id="display-location">Lieu du match</span>
+            <span class="text-slate-700">•</span>
+            <span id="display-start-time">--:--</span>
+        </div>
+        <div class="h-px w-12 bg-slate-800 mt-2"></div>
+    </div>
+
+    <div class="text-center">
+        <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
+    </div>
 
     <div class="mt-6 text-center">
         <div id="timer-display" class="score-font text-5xl text-amber-400">00:00</div>
@@ -63,7 +76,7 @@
     <script>
         const supabaseUrl = 'https://rmfcixwuyltwpotijozd.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZmNpeHd1eWx0d3BvdGlqb3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjQyMzgsImV4cCI6MjA4NTYwMDIzOH0.IW9b7431_xQlM1rydhOO551QgIq3bVEOgM5KllSzfTs';
-        const MATCH_ID = 'd470bcc2-8b48-4881-8c9f-ac25c9002d2e';
+        const MATCH_ID = '7d6708ba-b37c-4719-8aea-da68cf7d6147';
         const ADMIN_SECRET = "coach2026"; 
 
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
@@ -296,6 +309,8 @@
         document.getElementById('score-away').innerText = matchData.score_away;
         document.getElementById('home-name').innerText = matchData.home_team;
         document.getElementById('away-name').innerText = matchData.away_team;
+        document.getElementById('display-location').innerText = matchData.match_location || "Gymnase inconnu";
+        document.getElementById('display-start-time').innerText = matchData.match_start_time || "--:--";
         const homeLogo = document.getElementById('home-logo');
         if (matchData.home_logo_url) {
             homeLogo.src = matchData.home_logo_url;
