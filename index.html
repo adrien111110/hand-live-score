@@ -21,7 +21,7 @@
             <span class="text-slate-700">•</span>
             <span id="display-start-time">--:--</span>
         </div>
-        <div id="display-period" class="mt-2 inline-block bg-slate-800 text-slate-300 text-[9px] px-3 py-1 rounded-full border border-slate-700 font-bold uppercase">1ère M-T</div>
+        <div id="display-period" class="mt-2 inline-block bg-slate-800 text-slate-300 text-[9px] px-3 py-1 rounded-full border border-slate-700 font-bold uppercase">1ère Période</div>
     </div>
 
     <div class="text-center mb-6">
@@ -46,6 +46,21 @@
         </div>
     </div>
 
+    <div class="w-full max-w-lg mt-6 grid grid-cols-2 gap-4">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-[9px] uppercase tracking-widest text-slate-500 font-bold mb-3 italic">🔥 Top Buteurs</h3>
+            <div id="stats-scorers" class="space-y-2">
+                <p class="text-[10px] text-slate-600 italic">Aucun but...</p>
+            </div>
+        </div>
+
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+            <h3 class="text-[9px] uppercase tracking-widest text-slate-500 font-bold mb-1 italic">🧤 Arrêt Gardien SCHL</h3>
+            <div id="stats-gk-percent" class="score-font text-3xl text-indigo-400">0%</div>
+            <div id="stats-gk-details" class="text-[9px] text-slate-500 uppercase font-bold mt-1">0 Arrêt / 0 Tir</div>
+        </div>
+    </div>
+
     <div class="w-full max-w-lg mt-6">
         <h3 class="text-[10px] uppercase tracking-widest text-slate-500 mb-3 px-2 font-bold italic">Fil du match</h3>
         <div id="timeline-container" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
@@ -56,16 +71,16 @@
     <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/95 p-6 rounded-3xl border border-slate-700 shadow-2xl">
         <div class="flex flex-col items-center gap-4">
             <select id="select-period" onchange="changePeriod(this.value)" class="bg-slate-800 text-white text-xs p-3 rounded-xl border border-slate-700 w-full focus:outline-none">
-                <option value="1ère M-T">1ère Mi-temps</option>
-                <option value="Pause">Pause</option>
-                <option value="2ème M-T">2ème Mi-temps</option>
+                <option value="1ère Période">1ère Période</option>
+                <option value="Mi-Temps">Mi-Temps</option>
+                <option value="2ème Période">2ème Période</option>
                 <option value="Match Terminé">Match Terminé</option>
             </select>
             
             <div class="flex items-center gap-4">
-                <button onclick="adjustTimer(-10)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 font-bold">-10s</button>
+                <button onclick="adjustTimer(-5)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 font-bold">-5s</button>
                 <button id="btn-timer" onclick="toggleTimer()" class="px-10 py-3 rounded-full font-bold bg-green-500 text-black shadow-lg shadow-green-500/20 active:scale-95 transition-all">START</button>
-                <button onclick="adjustTimer(10)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 font-bold">+10s</button>
+                <button onclick="adjustTimer(5)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 font-bold">+5s</button>
             </div>
         </div>
 
@@ -81,6 +96,7 @@
                 <button onclick="addPenalty('away')" class="w-full bg-orange-600/10 border border-orange-600 text-orange-500 py-2 rounded-xl text-[10px] font-bold uppercase">Exclusion 2'</button>
             </div>
         </div>
+        <button onclick="logGkSave()" class="w-1/2 mt-2 bg-indigo-600/10 border border-indigo-500 text-indigo-400 py-2 rounded-xl text-[10px] font-bold uppercase">Arrêt Gardien SCHL</button>
         <button onclick="resetTimer()" class="w-full text-[9px] text-slate-700 uppercase tracking-[0.3em] pt-4">Réinitialiser Match</button>
     </div>
 
@@ -105,6 +121,7 @@
         let activePenalties = [];
         let teamPlayers = [];
         let pendingGoalTeam = null;
+        let fullTimeline = []; // On va stocker les events ici pour les stats
 
         async function init() {
             // 1. Charger les données du match
@@ -209,26 +226,62 @@
             closeModal();
         }
 
+        async function logGkSave() {
+            // On insère l'événement avec un score snapshot pour la cohérence des stats
+            await supabaseClient.from('timeline').insert({
+                match_id: MATCH_ID,
+                event_type: 'gk_save',
+                match_time: document.getElementById('timer-display').innerText,
+                score_snapshot: `${matchData.score_home}-${matchData.score_away}`
+            });
+            // Note: Le Realtime va détecter l'insertion, appeler addEventToUI, 
+            // et calculateStats() sera mis à jour sans créer de ligne dans la timeline.
+}       
+
         function addEventToUI(event) {
             const container = document.getElementById('timeline-container');
+            
+            // VERROU ANTI-DOUBLONS : Si l'événement est déjà dans la liste, on arrête TOUT
+            if (fullTimeline.some(e => e.id === event.id)) return;
+
+            // On ajoute l'événement à la liste globale
+            fullTimeline.push(event);
+
+            // On lance le calcul des stats (qui lira la liste propre)
+            calculateStats();
+
+            // FILTRE D'AFFICHAGE : On ne veut pas voir les arrêts GB dans la timeline
+            if (event.event_type === 'gk_save') return;
+
+            // --- RENDU VISUEL DE LA TIMELINE ---
             if (container.innerText.includes("attente")) container.innerHTML = '';
 
             const isPeriod = event.event_type === 'period_change';
             const div = document.createElement('div');
-            div.className = `flex items-center gap-3 p-3 rounded-2xl border mb-2 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 ${
+            div.className = `flex items-center gap-3 p-3 rounded-2xl border mb-2 shadow-sm ${
                 isPeriod ? 'bg-amber-500/10 border-amber-500/30 border-l-4 border-l-amber-500' : 'bg-slate-900/60 border-slate-800'
             }`;
             
-            let icon = "⚽", label = "", team = "";
+            let icon = "🤾", label = "", team = "";
             if (event.event_type.includes('goal')) {
-                const buteur = event.player_name ? ` de <span class="text-white">${event.player_name}</span>` : "";
-                label = `<span class="text-amber-400 font-black">BUT</span>${buteur}`;
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
-            } else if (event.event_type.includes('penalty')) {
-                label = "<span class='text-orange-500'>EXCLUSION 2'</span>"; icon = "🟧";
+        
+                // Si on a un joueur, on l'affiche, sinon on affiche "de + nom de l'équipe"
+                const buteurInfo = event.player_name 
+                    ? ` de <span class="text-white">${event.player_name}</span>` 
+                    : ` de <span class="text-slate-300">${team}</span>`;
+                    
+                label = `<span class="text-amber-400 font-black">BUT</span>${buteurInfo}`;
+                icon = "🤾";
+            }
+            else if (event.event_type.includes('penalty')) {
+                label = "<span class='text-orange-500 text-[10px]'>EXCLUSION 2'</span>"; icon = "✌️";
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
             } else if (isPeriod) {
-                label = `<span class="text-amber-400 font-bold">${event.player_name}</span>`; icon = "🏁"; team = "INFO";
+                if (event.player_name === "Mi-Temps") { icon = "☕"; label = "Mi-Temps"; }
+                else if (event.player_name === "2ème Période") { icon = "🏃"; label = "REPRISE DU MATCH"; }
+                else if (event.player_name === "Match Terminé") { icon = "🏁"; label = "FIN DU MATCH"; }
+                team = "INFO";
             }
 
             div.innerHTML = `
@@ -309,6 +362,43 @@
             });
         }
 
+        function calculateStats() {
+            // --- 1. STATS GARDIEN ---
+            // Uniquement les arrêts du GB
+            const saves = fullTimeline.filter(e => e.event_type === 'gk_save').length;
+            // Uniquement les buts encaissés (ceux de l'adversaire)
+            const goalsConceded = fullTimeline.filter(e => e.event_type === 'goal_away').length;
+            
+            const totalShotsAgainst = saves + goalsConceded;
+            const percent = totalShotsAgainst > 0 ? Math.round((saves / totalShotsAgainst) * 100) : 0;
+            
+            document.getElementById('stats-gk-percent').innerText = `${percent}%`;
+            document.getElementById('stats-gk-details').innerText = `${saves} Arrêt${saves > 1 ? 's' : ''} / ${totalShotsAgainst} Tir${totalShotsAgainst > 1 ? 's' : ''}`;
+
+            // --- 2. TOP BUTEURS ---
+            // Uniquement les buts marqués par ton équipe (home) avec un nom de joueur
+            const homeGoals = fullTimeline.filter(e => e.event_type === 'goal_home' && e.player_name);
+            const counts = {};
+            homeGoals.forEach(g => {
+                counts[g.player_name] = (counts[g.player_name] || 0) + 1;
+            });
+
+            const sortedScorers = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1]) // Du plus grand au plus petit
+                .slice(0, 3); // Garde les 3 premiers
+
+            const container = document.getElementById('stats-scorers');
+            if (sortedScorers.length > 0) {
+                container.innerHTML = sortedScorers.map(([name, count]) => `
+                    <div class="flex justify-between items-center border-b border-slate-800/50 pb-1">
+                        <span class="text-[11px] font-bold text-slate-300 truncate mr-2">${name}</span>
+                        <span class="score-font text-amber-400 text-xs">${count}</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-[10px] text-slate-600 italic">Aucun buteur...</p>';
+            }
+        }
         async function resetTimer() { 
             if(confirm("Réinitialiser tout le match ?")) { 
                 await supabaseClient.from('matches').update({ is_running: false, timer_seconds: 0, last_start_time: null, score_home: 0, score_away: 0, period: '1ère M-T' }).eq('id', MATCH_ID); 
