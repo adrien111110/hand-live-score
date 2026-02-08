@@ -3,14 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Live Pro - SCHL</title>
+    <title>SCHL Live</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         .score-font { font-family: 'Orbitron', sans-serif; }
+        body {background-color: #000532 !important;color: white;}
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-event { animation: slideIn 0.4s ease-out forwards; }
     </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
@@ -28,36 +40,38 @@
         <div id="timer-display" class="score-font text-6xl text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">00:00</div>
     </div>
 
-    <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800">
-        <div class="flex justify-between items-start">
+    <div class="w-full max-w-lg mt-4 glass-card rounded-[2.5rem] p-8">
+        <div class="flex justify-between items-center gap-4">
             <div class="flex-1 text-center flex flex-col items-center">
-                <img id="home-logo" src="" class="w-14 h-14 mb-2 object-contain hidden">
-                <h2 id="home-name" class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-tighter">DOMICILE</h2>
-                <div id="score-home" class="score-font text-6xl mb-4">0</div>
-                <div id="penalties-home" class="space-y-1 w-full"></div>
+                <img id="home-logo" src="" class="w-16 h-16 mb-3 object-contain hidden filter drop-shadow-lg">
+                <h2 id="home-name" class="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">DOMICILE</h2>
+                <div id="score-home" class="score-font text-7xl mb-4 text-white">0</div>
+                <div id="penalties-home" class="space-y-2 w-full"></div>
             </div>
-            <div class="text-4xl text-slate-800 font-bold mt-16 px-2">:</div>
+
+            <div class="text-3xl text-white/20 font-light">:</div>
+
             <div class="flex-1 text-center flex flex-col items-center">
-                <img id="away-logo" src="" class="w-14 h-14 mb-2 object-contain hidden">
-                <h2 id="away-name" class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-tighter">EXTÉRIEUR</h2>
-                <div id="score-away" class="score-font text-6xl mb-4">0</div>
-                <div id="penalties-away" class="space-y-1 w-full"></div>
+                <img id="away-logo" src="" class="w-16 h-16 mb-3 object-contain hidden filter drop-shadow-lg">
+                <h2 id="away-name" class="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">EXTÉRIEUR</h2>
+                <div id="score-away" class="score-font text-7xl mb-4 text-white">0</div>
+                <div id="penalties-away" class="space-y-2 w-full"></div>
             </div>
         </div>
     </div>
 
     <div class="w-full max-w-lg mt-6 grid grid-cols-2 gap-4">
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-            <h3 class="text-[9px] uppercase tracking-widest text-slate-500 font-bold mb-3 italic">🔥 Top Buteurs</h3>
-            <div id="stats-scorers" class="space-y-2">
-                <p class="text-[10px] text-slate-600 italic">Aucun but...</p>
+        <div class="glass-card rounded-3xl p-5">
+            <h3 class="text-[9px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-4">🔥 Top Buteurs SCHL</h3>
+            <div id="stats-scorers" class="space-y-3">
+                <p class="text-[10px] text-white/30 italic">En attente...</p>
             </div>
         </div>
 
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-            <h3 class="text-[9px] uppercase tracking-widest text-slate-500 font-bold mb-1 italic">🧤 Arrêt Gardien SCHL</h3>
-            <div id="stats-gk-percent" class="score-font text-3xl text-indigo-400">0%</div>
-            <div id="stats-gk-details" class="text-[9px] text-slate-500 uppercase font-bold mt-1">0 Arrêt / 0 Tir</div>
+        <div class="glass-card rounded-3xl p-5 flex flex-col items-center justify-center">
+            <h3 class="text-[9px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-2">🧤 Efficience gardiens SCHL</h3>
+            <div id="stats-gk-percent" class="score-font text-4xl text-white">0%</div>
+            <div id="stats-gk-details" class="text-[8px] text-white/40 uppercase font-black mt-2 tracking-tighter">0 Arrêt / 0 Tir</div>
         </div>
     </div>
 
@@ -108,6 +122,14 @@
             <button onclick="closeModal()" class="w-full mt-6 text-slate-500 text-[10px] uppercase font-bold tracking-widest">Annuler</button>
         </div>
     </div>
+
+    <footer class="w-full max-w-lg mt-16 mb-10 flex flex-col items-center opacity-30 hover:opacity-100 transition-opacity duration-700">
+        <div class="h-[1px] w-12 bg-gradient-to-r from-transparent via-indigo-500 to-transparent mb-6"></div>
+        <p class="text-[9px] tracking-[0.4em] uppercase font-medium text-indigo-200">
+            développer par <span class="font-black text-white text-[10px]">ADRIEN KEIRSGIETER</span>
+        </p>
+        <p class="text-[7px] mt-2 text-white/20 uppercase tracking-widest">SCHL Live • beta test</p>
+    </footer>
 
     <script>
         // CONFIGURATION SUPABASE
@@ -258,9 +280,9 @@
 
             const isPeriod = event.event_type === 'period_change';
             const div = document.createElement('div');
-            div.className = `flex items-center gap-3 p-3 rounded-2xl border mb-2 shadow-sm ${
-                isPeriod ? 'bg-amber-500/10 border-amber-500/30 border-l-4 border-l-amber-500' : 'bg-slate-900/60 border-slate-800'
-            }`;
+            div.className = `flex items-center gap-4 p-4 rounded-2xl border mb-3 animate-event shadow-lg ${
+                isPeriod 
+                ? 'bg-amber-500/20 border-amber-500/40 border-l-4 border-l-amber-500': 'glass-card'}`;
             
             let icon = "🤾", label = "", team = "";
             if (event.event_type.includes('goal')) {
@@ -268,14 +290,14 @@
         
                 // Si on a un joueur, on l'affiche, sinon on affiche "de + nom de l'équipe"
                 const buteurInfo = event.player_name 
-                    ? ` de <span class="text-white">${event.player_name}</span>` 
-                    : ` de <span class="text-slate-300">${team}</span>`;
+                    ? ` de <span class="text-white font-bold">${event.player_name}</span>` 
+                    : ` de <span class="text-slate-300 font-medium">${team}</span>`;
                     
                 label = `<span class="text-amber-400 font-black">BUT</span>${buteurInfo}`;
                 icon = "🤾";
             }
             else if (event.event_type.includes('penalty')) {
-                label = "<span class='text-orange-500 text-[10px]'>EXCLUSION 2'</span>"; icon = "✌️";
+                label = "<span class='text-orange-500 font-black'>EXCLUSION 2'</span>"; icon = "✌️";
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
             } else if (isPeriod) {
                 if (event.player_name === "Mi-Temps") { icon = "☕"; label = "Mi-Temps"; }
@@ -287,7 +309,7 @@
             div.innerHTML = `
                 <span class="score-font text-amber-500/50 text-[10px] w-9">${event.match_time}</span>
                 <div class="flex-1 leading-tight">
-                    <div class="text-[8px] text-slate-500 uppercase font-black">${team}</div>
+                    <div class="text-[8px] text-slate-500 uppercase font-black tracking-tighter">${team}</div>
                     <div class="text-xs font-bold text-slate-300">${label} <span class="text-slate-500 ml-1 text-[10px]">(${event.score_snapshot})</span></div>
                 </div>
                 <span class="text-lg">${icon}</span>
