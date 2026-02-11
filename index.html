@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LW9ZJEKBSC"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-LW9ZJEKBSC');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCHL Live Score</title>
@@ -52,9 +62,10 @@
         <div class="glass-card rounded-3xl p-5">
             <h3 class="text-[9px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-4">🔥 Top Buteurs SCHL</h3>
             <div id="stats-scorers" class="space-y-3"></div>
+            <p class="text-[10px] text-white/30 italic">En attente...</p>
         </div>
         <div class="glass-card rounded-3xl p-5 flex flex-col items-center justify-center">
-            <h3 class="text-[9px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-2 text-center">🧤 Efficience Gardiens</h3>
+            <h3 class="text-[9px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-2 text-center">🧤 Gardiens SCHL</h3>
             <div id="stats-gk-percent" class="score-font text-4xl text-white">0%</div>
             <div id="stats-gk-details" class="text-[8px] text-white/40 uppercase font-black mt-2">0 Arrêt / 0 Tir</div>
         </div>
@@ -63,6 +74,7 @@
     <div class="w-full max-w-lg mt-6">
         <h3 class="text-[10px] uppercase tracking-widest text-slate-500 mb-3 px-2 font-bold italic">Fil du match</h3>
         <div id="timeline-container" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar"></div>
+        <p class="text-slate-600 text-xs italic p-4 text-center">En attente d'événements...</p>
     </div>
 
     <div id="admin-panel" class="hidden w-full max-w-md mt-8 space-y-6 bg-slate-900/95 p-6 rounded-3xl border border-slate-700 shadow-2xl">
