@@ -33,6 +33,23 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-event { animation: slideIn 0.4s ease-out forwards; }
+        .admin-delete-btn {
+            display: none; 
+            color: #ef4444;
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0 10px;
+            padding: 4px 6px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            flex-shrink: 0; /* Empêche le bouton de s'écraser */
+        }
+        /* Correction : on force l'affichage quand on est admin */
+        .is-admin .admin-delete-btn {
+            display: inline-block !important;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
@@ -195,6 +212,7 @@
             // Check Admin
             if (new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET) {
                 document.getElementById('admin-panel').classList.remove('hidden');
+                document.getElementById('timeline-container').classList.add('is-admin');
             }
             
             reloadPenalties();
@@ -315,77 +333,119 @@
         }
 
         function addEventToUI(event) {
-            const container = document.getElementById('timeline-container');
-            
-            // VERROU ANTI-DOUBLONS : Si l'événement est déjà dans la liste, on arrête TOUT
             if (fullTimeline.some(e => e.id === event.id)) return;
-
-            // On ajoute l'événement à la liste globale
             fullTimeline.push(event);
-
-            // On lance le calcul des stats (qui lira la liste propre)
             calculateStats();
 
-            // FILTRE D'AFFICHAGE : On ne veut pas voir les arrêts GB dans la timeline
-            if (event.event_type === 'gk_save') return;
+            const container = document.getElementById('timeline-container');
+            const isAdmin = new URLSearchParams(window.location.search).get('admin') === ADMIN_SECRET;
 
-            // --- RENDU VISUEL DE LA TIMELINE ---
+            // On s'assure que le container a bien la classe is-admin pour afficher les boutons
+            if (isAdmin) container.classList.add('is-admin');
+
+            // FILTRE : On cache les arrêts pour les parents, mais l'admin peut les voir (et les supprimer)
+            if (event.event_type === 'gk_save' && !isAdmin) return;
+
             if (container.innerText.includes("attente")) container.innerHTML = '';
 
             const isPeriod = event.event_type === 'period_change';
             const div = document.createElement('div');
+            div.id = `event-${event.id}`;
             div.className = `flex items-center gap-4 p-4 rounded-2xl border mb-3 animate-event shadow-lg ${
-                isPeriod 
-                ? 'bg-amber-500/20 border-amber-500/40 border-l-4 border-l-amber-500': 'glass-card'}`;
+                isPeriod ? 'bg-amber-500/20 border-amber-500/40 border-l-4 border-l-amber-500' : 'glass-card'
+            }`;
             
-            let icon = "🤾", label = "", team = "";
+            // Valeurs par défaut
+            let icon = "🤾"; 
+            let label = ""; 
+            let team = "";
+
             if (event.event_type.includes('goal')) {
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
-        
-                // Si on a un joueur, on l'affiche, sinon on affiche "de + nom de l'équipe"
                 const buteurInfo = event.player_name 
                     ? ` de <span class="text-white font-bold">${event.player_name}</span>` 
                     : ` de <span class="text-slate-300 font-medium">${team}</span>`;
-                    
                 label = `<span class="text-amber-400 font-black">BUT</span>${buteurInfo}`;
-                icon = "🤾";
-            }
+                icon = "🤾"; // Le handballeur qui saute
+            } 
             else if (event.event_type.includes('penalty')) {
-                label = "<span class='text-orange-500 font-black'>EXCLUSION 2'</span>"; icon = "✌️";
+                label = "<span class='text-orange-500 font-black'>EXCLUSION 2'</span>"; 
+                icon = "✌️";
                 team = event.event_type.includes('home') ? matchData.home_team : matchData.away_team;
-            } else if (isPeriod) {
+            } 
+            else if (isPeriod) {
+                team = "INFO MATCH";
                 if (event.player_name === "Mi-Temps") { icon = "☕"; label = "Mi-Temps"; }
                 else if (event.player_name === "2ème Période") { icon = "🏃"; label = "REPRISE DU MATCH"; }
                 else if (event.player_name === "Match Terminé") { icon = "🏁"; label = "FIN DU MATCH"; }
-                team = "INFO";
             }
-            
             else if (event.event_type === '7m_announced') {
                 label = `<span class="text-amber-400 font-black">JET DE 7m</span> pour ${event.player_name}`;
                 icon = "🎯";
                 team = "ARBITRAGE";
             }
             else if (event.event_type === 'comment') {
-                // Style spécial pour les commentaires (italique et blanc)
                 label = `<span class="text-white italic font-medium">"${event.player_name}"</span>`;
                 icon = "💬";
                 team = "DIRECT";
+                div.classList.add('border-l-4', 'border-l-indigo-500', 'bg-indigo-500/10');
             }
-
-            // Mise à jour du style de la DIV pour les commentaires
-            if (event.event_type === 'comment') {
-                div.className = `flex items-center gap-4 p-4 rounded-2xl border mb-3 animate-event shadow-lg bg-indigo-500/10 border-indigo-500/30 border-l-4 border-l-indigo-500`;
+            else if (event.event_type === 'gk_save') {
+                label = "<span class='text-indigo-400 font-bold italic'>Arrêt Gardien (Stats)</span>";
+                icon = "🧤";
+                team = "SCHL";
             }
 
             div.innerHTML = `
                 <span class="score-font text-amber-500/50 text-[10px] w-9">${event.match_time}</span>
                 <div class="flex-1 leading-tight">
-                    <div class="text-[8px] text-slate-500 uppercase font-black tracking-tighter">${team}</div>
+                    <div class="text-[8px] text-slate-500 uppercase font-black tracking-widest">${team}</div>
                     <div class="text-xs font-bold text-slate-300">${label} <span class="text-slate-500 ml-1 text-[10px]">(${event.score_snapshot})</span></div>
                 </div>
+                <button class="admin-delete-btn" onclick="deleteEvent('${event.id}', '${event.event_type}')">Suppr.</button>
                 <span class="text-lg">${icon}</span>
             `;
             container.prepend(div);
+        }
+
+        async function deleteEvent(eventId, type) {
+            if (!confirm("Supprimer cet événement et annuler ses conséquences (score, pénalité...) ?")) return;
+
+            try {
+                // 1. ANNULLER LES EFFETS SELON LE TYPE
+                if (type === 'goal_home' || type === 'goal_away') {
+                    const col = type === 'goal_home' ? 'score_home' : 'score_away';
+                    const { data: match } = await supabaseClient.from('matches').select(col).eq('id', MATCH_ID).single();
+                    await supabaseClient.from('matches').update({ [col]: Math.max(0, match[col] - 1) }).eq('id', MATCH_ID);
+                } 
+                else if (type.includes('penalty')) {
+                    // Pour les pénalités, on va chercher la plus proche dans le temps et la supprimer
+                    const team = type.includes('home') ? 'home' : 'away';
+                    const { data: p } = await supabaseClient.from('penalties')
+                        .select('id')
+                        .eq('match_id', MATCH_ID)
+                        .eq('team', team)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+                    if (p) await supabaseClient.from('penalties').delete().eq('id', p.id);
+                }
+
+                // 2. SUPPRIMER DANS SUPABASE
+                await supabaseClient.from('timeline').delete().eq('id', eventId);
+
+                // 3. NETTOYAGE LOCAL
+                fullTimeline = fullTimeline.filter(e => e.id !== eventId);
+                const element = document.getElementById(`event-${eventId}`);
+                if (element) element.remove();
+                
+                calculateStats(); // Recalculer tout (Top buteurs, % GB)
+                alert("Événement annulé avec succès");
+                
+            } catch (err) {
+                console.error(err);
+                alert("Erreur lors de la suppression");
+            }
         }
 
         async function toggleTimer() {
