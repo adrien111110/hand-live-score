@@ -59,7 +59,7 @@
     </div>
 
     <div class="w-full max-w-lg mt-6 grid grid-cols-2 gap-4">
-        <div class="glass-card rounded-3xl p-5">
+        <div class="glass-card rounded-3xl p-5 cursor-pointer hover:bg-white/5 transition-all" onclick="openAllScorers()"></div>
             <h3 class="text-[9px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-4">🔥 Top Buteurs SCHL</h3>
             <div id="stats-scorers" class="space-y-3"></div>
         </div>
@@ -134,6 +134,23 @@
             <p class="text-[7px] mt-2 text-white/20 uppercase tracking-widest">SCHL Live • V2 test</p>
         </p>
     </footer>
+
+    <div id="all-scorers-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-sm rounded-[2.5rem] p-8 relative border border-white/20">
+            <button onclick="closeAllScorers()" class="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <h3 class="score-font text-amber-400 text-xl mb-6 text-center tracking-tighter uppercase">Statistiques Joueurs</h3>
+            
+            <div id="full-scorers-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+                </div>
+
+            <p class="text-[9px] text-slate-500 mt-8 text-center uppercase tracking-[0.3em]">SCHL Live • Stats complètes</p>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
