@@ -288,6 +288,44 @@ function calculateStats() {
     container.innerHTML = sortedScorers.length > 0 ? sortedScorers.map(([name, count]) => `<div class="flex justify-between items-center border-b border-slate-800/50 pb-1"><span class="text-[11px] font-bold text-slate-300">${name}</span><span class="score-font text-amber-400 text-xs">${count}</span></div>`).join('') : '<p class="text-[10px] text-slate-600 italic">Aucun buteur...</p>';
 }
 
+function openAllScorers() {
+    const modal = document.getElementById('all-scorers-modal');
+    const listContainer = document.getElementById('full-scorers-list');
+    
+    // 1. Calculer les buts pour TOUS les joueurs (Maison)
+    const homeGoals = fullTimeline.filter(e => e.event_type === 'goal_home' && e.player_name);
+    const counts = {};
+    
+    homeGoals.forEach(g => { 
+        counts[g.player_name] = (counts[g.player_name] || 0) + 1; 
+    });
+
+    // 2. Trier par nombre de buts
+    const sortedAll = Object.entries(counts)
+        .filter(([name, count]) => count >= 1) // On n'affiche que ceux qui ont au moins 1 but
+        .sort((a, b) => b[1] - a[1]);
+
+    // 3. Générer le HTML
+    if (sortedAll.length > 0) {
+        listContainer.innerHTML = sortedAll.map(([name, count]) => `
+            <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">🤾</span>
+                    <span class="text-sm font-bold text-white uppercase tracking-tight">${name}</span>
+                </div>
+                <div class="score-font text-amber-400 text-xl">${count}</div>
+            </div>
+        `).join('');
+    } else {
+        listContainer.innerHTML = '<p class="text-slate-500 italic text-center text-sm py-10">Aucun but marqué pour le moment...</p>';
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeAllScorers() {
+    document.getElementById('all-scorers-modal').classList.add('hidden');
+}
 // --- 8. SUPPRESSION ET RESET ---
 async function deleteEvent(eventId, type) {
     try {
