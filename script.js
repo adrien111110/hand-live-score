@@ -6,9 +6,13 @@
 // --- CONFIGURATION ---
 const supabaseUrl = 'https://rmfcixwuyltwpotijozd.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZmNpeHd1eWx0d3BvdGlqb3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjQyMzgsImV4cCI6MjA4NTYwMDIzOH0.IW9b7431_xQlM1rydhOO551QgIq3bVEOgM5KllSzfTs';
-const MATCH_ID = '7d6708ba-b37c-4719-8aea-da68cf7d6147';
 const ADMIN_SECRET = "coach2026"; 
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+// Récupère l'ID du match depuis l'URL, sinon prend l'ID par défaut
+const urlParams = new URLSearchParams(window.location.search);
+const DEFAULT_MATCH_ID = '7d6708ba-b37c-4719-8aea-da68cf7d6147';
+const MATCH_ID = urlParams.get('match') || DEFAULT_MATCH_ID;
 
 // --- VARIABLES GLOBALES ---
 let matchData = null;
@@ -261,13 +265,26 @@ function addEventToUI(event) {
     }
 
     div.innerHTML = `
-        <span class="score-font text-amber-500/50 text-[10px] w-9">${event.match_time}</span>
-        <div class="flex-1 leading-tight">
-            <div class="text-[8px] text-slate-500 uppercase font-black tracking-widest">${team}</div>
-            <div class="text-xs font-bold text-slate-300">${label} <span class="text-slate-500 ml-1 text-[10px]">(${event.score_snapshot})</span></div>
+        <div class="score-font text-amber-500/50 text-[10px] w-10 flex-shrink-0 flex items-center">
+            ${event.match_time}
         </div>
-        <button class="admin-delete-btn" onclick="deleteEvent('${event.id}', '${event.event_type}')">Suppr.</button>
-        <span class="text-lg">${icon}</span>
+
+        <div class="flex-1 min-w-0 px-2 flex flex-col justify-center">
+            <div class="text-[8px] text-slate-500 uppercase font-black tracking-widest truncate">
+                ${team}
+            </div>
+            <div class="text-xs font-bold text-slate-300 leading-tight">
+                ${label} 
+                <span class="text-slate-500 ml-1 text-[10px] font-medium whitespace-nowrap">(${event.score_snapshot})</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
+            <button class="admin-delete-btn" onclick="deleteEvent('${event.id}', '${event.event_type}')">
+                Suppr.
+            </button>
+            <span class="text-xl w-6 h-6 flex items-center justify-center">${icon}</span>
+        </div>
     `;
     container.prepend(div);
 }
@@ -353,6 +370,66 @@ async function resetTimer() {
         await supabaseClient.from('timeline').delete().eq('match_id', MATCH_ID); 
         location.reload(); 
     }
+}
+
+/**
+ * OUVRIR / FERMER LE MENU
+ */
+function toggleMenu() {
+    const menu = document.getElementById('side-menu');
+    const overlay = document.getElementById('menu-overlay');
+    const isOpen = menu.classList.contains('translate-x-0');
+
+    if (!isOpen) {
+        menu.classList.remove('-translate-x-full');
+        menu.classList.add('translate-x-0');
+        overlay.classList.remove('hidden');
+        loadMatchesHistory(); // On charge les matchs quand on ouvre
+    } else {
+        menu.classList.remove('translate-x-0');
+        menu.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+    }
+}
+
+/**
+ * CHARGER LA LISTE DES MATCHS DEPUIS SUPABASE
+ */
+async function loadMatchesHistory() {
+    const listContainer = document.getElementById('matches-list');
+    
+    const { data: matches, error } = await supabaseClient
+        .from('matches')
+        .select('id, home_team, away_team, score_home, score_away, created_at')
+        .order('created_at', { ascending: false });
+
+    if (error || !matches) {
+        listContainer.innerHTML = '<p class="text-red-500 text-[10px]">Erreur de chargement</p>';
+        return;
+    }
+
+    listContainer.innerHTML = matches.map(m => {
+        const date = new Date(m.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        const isActive = m.id === MATCH_ID ? 'border-amber-500/50 bg-amber-500/10' : 'border-white/5 bg-white/5';
+        
+        // On conserve le mode admin si on change de match
+        const adminSuffix = urlParams.has('admin') ? `&admin=${ADMIN_SECRET}` : '';
+        
+        return `
+            <div onclick="window.location.href='?match=${m.id}${adminSuffix}'" 
+                 class="p-4 rounded-2xl border ${isActive} cursor-pointer hover:border-indigo-500/50 transition-all shadow-lg">
+                <div class="text-[8px] text-slate-500 font-bold uppercase mb-2">${date} • ID: ${m.id.slice(0,8)}</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-300 uppercase">${m.home_team}</span>
+                    <span class="score-font text-white text-xs">${m.score_home}</span>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-[10px] font-bold text-slate-300 uppercase">${m.away_team}</span>
+                    <span class="score-font text-white text-xs">${m.score_away}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 init();
