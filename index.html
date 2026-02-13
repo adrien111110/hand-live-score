@@ -23,6 +23,25 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-4">
 
+    <button onclick="toggleMenu()" class="fixed top-5 left-5 z-[70] p-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+
+    <div id="side-menu" class="fixed inset-y-0 left-0 w-72 bg-slate-900/95 backdrop-blur-2xl z-[80] transform -translate-x-full transition-transform duration-300 ease-in-out border-r border-white/10 p-6 shadow-2xl">
+        <div class="flex justify-between items-center mb-8">
+            <h3 class="score-font text-amber-400 text-sm uppercase tracking-tighter">Historique SCHL</h3>
+            <button onclick="toggleMenu()" class="text-slate-500 hover:text-white">✕</button>
+        </div>
+        
+        <div id="matches-list" class="space-y-4 overflow-y-auto max-h-[80vh] custom-scrollbar">
+            <p class="text-[10px] text-slate-600 italic">Chargement des matchs...</p>
+        </div>
+    </div>
+
+    <div id="menu-overlay" onclick="toggleMenu()" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[75]"></div>
+
     <div class="w-full max-w-lg mb-4 text-center">
         <div class="flex justify-center items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
             <span id="display-location">Chargement...</span>
@@ -157,7 +176,7 @@
             <div id="full-scorers-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
                 </div>
 
-            <p class="text-[9px] text-slate-500 mt-8 text-center uppercase tracking-[0.3em]">SCHL Live • Stats complètes</p>
+            <p class="text-[9px] text-slate-500 mt-8 text-center uppercase tracking-[0.3em]">Buteur SCHL</p>
         </div>
     </div>
 
